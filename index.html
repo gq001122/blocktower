@@ -869,7 +869,8 @@
             const cellSize = CONFIG.BLOCK_SIZE;
             const baseTopY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
             
-            // ========== 重心算法：找到所有单元格都有支撑且不重叠的最佳位置 ==========
+            // ========== 俄罗斯方块式堆叠算法 ==========
+            // 核心原则：每个单元格独立下落，找到不重叠的最佳位置
             
             // 收集当前积木的单元格信息
             const cells = [];
@@ -881,78 +882,69 @@
                 }
             }
             
-            // 遍历所有可能的X位置（以单元格为单位）
             let bestX = block.x;
             let bestY = baseTopY - block.height;
             let bestSupportCount = 0;
             
-            // X偏移范围：-积木宽度到+积木宽度
-            const offsetStep = cellSize / 2; // 细粒度搜索
+            // 遍历所有可能的X偏移
+            const step = cellSize / 4; // 更精细的搜索
+            const minOffset = -block.width;
+            const maxOffset = block.width;
             
-            for (let offset = -block.width; offset <= block.width; offset += offsetStep) {
+            for (let offset = minOffset; offset <= maxOffset; offset += step) {
                 const testX = block.x + offset;
                 
-                // 找到这个X位置下的落点Y
-                let supportY = baseTopY;
-                
-                // 计算每个单元格下方的支撑
+                // 计算每个单元格会落在哪里
+                let maxLandingY = 0; // 所有单元格落点的最高值
                 let currentSupportCount = 0;
+                let hasOverlap = false;
                 
                 for (let cell of cells) {
-                    const cellLeftX = testX - block.width / 2 + cell.colIdx * cellSize;
-                    const cellRightX = cellLeftX + cellSize;
+                    const cellLeft = testX - block.width / 2 + cell.colIdx * cellSize;
+                    const cellRight = cellLeft + cellSize;
                     
-                    let cellHasSupport = false;
-                    let cellSupportY = baseTopY;
+                    // 找到这个单元格下方的最高支撑点
+                    let cellLandingY = baseTopY;
                     
                     for (let existingBlock of game.blocks) {
                         const existLeft = existingBlock.x - existingBlock.width / 2;
-                        const existRight = existingBlock.x + existingBlock.width / 2;
-                        const existBottomY = existingBlock.y + existingBlock.height;
+                        const existRight = existLeft + existingBlock.width;
                         
                         // 检查水平重叠
-                        if (cellRightX > existLeft && cellLeftX < existRight) {
-                            cellHasSupport = true;
-                            if (existBottomY < cellSupportY) {
-                                cellSupportY = existBottomY;
+                        if (cellRight > existLeft && cellLeft < existRight) {
+                            const existBottom = existingBlock.y + existingBlock.height;
+                            if (existBottom < cellLandingY) {
+                                cellLandingY = existBottom;
                             }
                         }
                     }
                     
-                    if (cellHasSupport) {
-                        currentSupportCount++;
-                        if (cellSupportY < supportY) {
-                            supportY = cellSupportY;
-                        }
+                    // 更新最高落点
+                    if (cellLandingY > maxLandingY) {
+                        maxLandingY = cellLandingY;
                     }
-                }
-                
-                // 计算落点Y（最高支撑点 - 积木高度）
-                const testY = supportY - block.height;
-                
-                // 检查是否会有重叠（绝对不允许）
-                let hasOverlap = false;
-                for (let cell of cells) {
-                    const cellLeftX = testX - block.width / 2 + cell.colIdx * cellSize;
-                    const cellRightX = cellLeftX + cellSize;
-                    const cellTopY = testY + cell.rowIdx * cellSize;
-                    const cellBottomY = cellTopY + cellSize;
+                    
+                    // 计数有支撑的单元格（不在基座上的）
+                    if (cellLandingY < baseTopY) {
+                        currentSupportCount++;
+                    }
+                    
+                    // 检查重叠：单元格落点是否与已有积木重叠
+                    const cellTop = cellLandingY - (cell.rowIdx + 1) * cellSize;
+                    const cellBottom = cellLandingY;
                     
                     for (let existingBlock of game.blocks) {
                         const existLeft = existingBlock.x - existingBlock.width / 2;
-                        const existRight = existingBlock.x + existingBlock.width / 2;
+                        const existRight = existLeft + existingBlock.width;
                         const existTop = existingBlock.y;
                         const existBottom = existingBlock.y + existingBlock.height;
                         
                         // 检查水平重叠
-                        if (cellRightX > existLeft && cellLeftX < existRight) {
-                            // 检查垂直重叠（不允许任何重叠）
-                            if (cellBottomY > existTop && cellTopY < existBottom) {
-                                const overlap = Math.min(cellBottomY, existBottom) - Math.max(cellTopY, existTop);
-                                if (overlap > 0) {
-                                    hasOverlap = true;
-                                    break;
-                                }
+                        if (cellRight > existLeft && cellLeft < existRight) {
+                            // 检查垂直重叠
+                            if (cellBottom > existTop && cellTop < existBottom) {
+                                hasOverlap = true;
+                                break;
                             }
                         }
                     }
@@ -965,12 +957,12 @@
                     if (currentSupportCount > bestSupportCount) {
                         bestSupportCount = currentSupportCount;
                         bestX = testX;
-                        bestY = testY;
+                        bestY = maxLandingY - block.height;
                     }
                 }
             }
             
-            // 如果找到有支撑的位置，使用它
+            // 如果找到有支撑且不重叠的位置，使用它
             if (bestSupportCount > 0) {
                 block.x = bestX;
                 return bestY;
