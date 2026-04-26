@@ -713,6 +713,8 @@
             game.targetCameraY = 0;
             game.currentEvent = null;
             game.towerTilt = 0;
+            game.baseX = CONFIG.CANVAS_WIDTH / 2;
+            game.baseY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
             
             // 创建初始积木
             game.nextBlock = createBlock(getRandomBlockType(0));
@@ -736,14 +738,13 @@
         }
         
         function dropBlock() {
-            if (!game.currentBlock || !game.currentBlock.dropping) return;
-            
-            game.currentBlock.dropping = false;
-            game.currentBlock.placed = true;
+            if (!game.currentBlock) return;
             
             // 计算落点
             const targetY = calculateLandingY();
             game.currentBlock.y = targetY;
+            game.currentBlock.dropping = false;
+            game.currentBlock.placed = true;
             
             // 检查平衡
             const tilt = calculateTowerTilt();
