@@ -945,11 +945,16 @@
                         
                         // 检查水平重叠
                         if (cellRightX > existLeft && cellLeftX < existRight) {
-                            // 真正的重叠：单元格进入了已有积木内部
-                            // 紧贴（cellBottomY == existTop 或 cellTopY == existBottom）不算碰撞
-                            const verticalOverlap = Math.min(cellBottomY, existBottom) - Math.max(cellTopY, existTop);
-                            if (verticalOverlap > 0.5) { // 允许小误差
-                                return true; // 发生碰撞
+                            // 计算垂直重叠量
+                            const overlapTop = Math.max(cellTopY, existTop);
+                            const overlapBottom = Math.min(cellBottomY, existBottom);
+                            const verticalOverlap = overlapBottom - overlapTop;
+                            
+                            // 只有当垂直重叠量超过阈值时才认为是碰撞
+                            // 紧贴（overlap <= 0）不算碰撞
+                            // 只有真正进入已有积木内部才算碰撞
+                            if (verticalOverlap > cellSize * 0.3) { // 重叠超过30%单元格大小才算碰撞
+                                return true;
                             }
                         }
                     }
