@@ -437,7 +437,9 @@
             CANVAS_WIDTH: 400,
             CANVAS_HEIGHT: 600,
             BASE_HEIGHT: 40,
-            DROP_SPEED: 4,  // 下落速度
+            DROP_SPEED: 3,  // 初始下落速度
+            DROP_ACCELERATION: 0.12,  // 下落加速度
+            MAX_DROP_SPEED: 8,  // 最大下落速度
             MOVE_SPEED: 6,  // 移动速度
             TILT_THRESHOLD: 20, // 倾斜阈值（度）
             PERFECT_THRESHOLD: 8, // 完美放置阈值（像素）
@@ -445,7 +447,7 @@
             EVENT_CHANCE: 0.3, // 事件触发概率
             SPAWN_Y: 50,  // 积木固定显示位置（屏幕最顶部）
             VIEW_SPACE: 8,  // 屏幕中间到顶部保留8格下落空间
-            COLLISION_FORCE: 1.5,  // 碰撞力度
+            COLLISION_FORCE: 2.5,  // 碰撞力度
         };
         
         // ==================== 积木形状（俄罗斯方块 + 更多）====================
@@ -719,7 +721,9 @@
                 height: template.shape.length * CONFIG.BLOCK_SIZE,
                 dropping: true,
                 placed: false,
-                tilt: 0
+                tilt: 0,
+                currentSpeed: 0,
+                collisionOffset: { x: 0, y: 0 }
             };
         }
         
@@ -792,6 +796,9 @@
             game.currentBlock.dropping = true;
         }
         
+        // 落地闪光效果
+        let landingFlash = { active: false, alpha: 0 };
+        
         // 积木放置完成回调（由draw函数调用）
         function onBlockLanded() {
             const block = game.currentBlock;
@@ -808,6 +815,9 @@
             
             block.placed = true;
             block.dropping = false;
+            
+            // 落地闪光效果
+            landingFlash = { active: true, alpha: 0.6, y: block.y + block.height };
             
             // 检查平衡
             const tilt = calculateTowerTilt();
@@ -826,9 +836,6 @@
             game.blockCount++;
             game.height++;
             
-            // 积木晃动动画
-            triggerBlockShake();
-            
             // 更新相机：保持顶部8格下落空间
             game.targetCameraY = Math.max(0, (game.height - CONFIG.VIEW_SPACE) * CONFIG.BLOCK_SIZE);
             
@@ -836,6 +843,7 @@
             const centerOffset = Math.abs(block.x - game.baseX);
             if (centerOffset < CONFIG.PERFECT_THRESHOLD) {
                 game.combo++;
+                showEventAlert('✨ 完美！');
             } else {
                 game.combo = 0;
             }
@@ -864,45 +872,41 @@
         
         function calculateLandingY() {
             const block = game.currentBlock;
-            const blockWidth = block.width;
-            const blockLeft = block.x - blockWidth / 2;
-            const blockRight = block.x + blockWidth / 2;
+            const blockLeft = block.x - block.width / 2;
+            const blockRight = block.x + block.width / 2;
             
-            // 基座顶部Y坐标（Y越大越靠下）
+            // 基座顶部Y坐标
             const baseTopY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
             
             // 找到积木下方最高的支撑点
-            let supportY = baseTopY; // 默认落在基座上
+            let supportY = baseTopY; // 默认支撑点在基座上
             
-            // 检查与每个已放置积木的碰撞
+            // 遍历所有已放置的积木
             for (let existingBlock of game.blocks) {
                 const existLeft = existingBlock.x - existingBlock.width / 2;
                 const existRight = existingBlock.x + existingBlock.width / 2;
-                const existTop = existingBlock.y; // 已有积木的顶部Y
                 
                 // 检查水平重叠
                 if (blockRight > existLeft && blockLeft < existRight) {
-                    // 有重叠，积木可以落在这个积木上方
-                    // 新的支撑点要比当前支撑点更高（Y值更小）
-                    if (existTop < supportY) {
-                        supportY = existTop;
+                    // 新积木落在现有积木上方
+                    const newSupportY = existingBlock.y; // 现有积木的顶部
+                    if (newSupportY < supportY) {
+                        supportY = newSupportY;
                     }
                 }
             }
             
-            // 返回新积木的顶部Y坐标 = 支撑点 - 积木高度
+            // 返回新积木的顶部Y坐标
             return supportY - block.height;
         }
         
-        // 检查积木是否与现有积木碰撞（精确碰撞检测）
+        // 检查积木是否与现有积木发生真正的重叠碰撞
         function checkBlockCollision(block, blockY) {
-            const blockWidth = block.width;
-            const blockLeft = block.x - blockWidth / 2;
-            const blockRight = block.x + blockWidth / 2;
+            const blockLeft = block.x - block.width / 2;
+            const blockRight = block.x + block.width / 2;
             const blockTop = blockY;
             const blockBottom = blockY + block.height;
             
-            // 检查与每个已放置积木的碰撞
             for (let existingBlock of game.blocks) {
                 const existLeft = existingBlock.x - existingBlock.width / 2;
                 const existRight = existingBlock.x + existingBlock.width / 2;
@@ -911,13 +915,17 @@
                 
                 // 检查水平重叠
                 if (blockRight > existLeft && blockLeft < existRight) {
-                    // 有水平重叠，检查垂直碰撞
+                    // 有水平重叠时，检查是否有垂直重叠（真正的碰撞）
+                    // 允许：blockBottom紧贴existTop（blockBottom == existTop）或在其上方
+                    // 允许：blockTop紧贴existBottom（blockTop == existBottom）或在其下方
+                    // 禁止：在中间重叠
                     if (blockBottom > existTop && blockTop < existBottom) {
-                        return true; // 有碰撞
+                        // 有垂直重叠（不是紧贴），这是真正的碰撞
+                        return true;
                     }
                 }
             }
-            return false; // 无碰撞
+            return false;
         }
         
         function calculateTowerTilt() {
@@ -987,7 +995,7 @@
         // ==================== 碰撞物理效果 ====================
         let blockShake = { active: false, time: 0 };
         
-        // 计算碰撞影响
+        // 计算碰撞影响 - 增强版
         function applyCollisionEffect(newBlock) {
             if (game.blocks.length === 0) return;
             
@@ -997,6 +1005,9 @@
             // 计算积木的重量（基于面积）
             const blockWeight = newBlock.shape.flat().reduce((a, b) => a + b, 0);
             
+            // 震动强度根据积木重量决定
+            const baseShake = blockWeight * 2;
+            
             // 对每个已存在的积木计算碰撞影响
             game.blocks.forEach(block => {
                 const dx = impactX - block.x;
@@ -1004,28 +1015,38 @@
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
                 // 影响范围扩大
-                if (distance < 200) {
+                if (distance < 250) {
                     // 冲击力：重量越大、距离越近，影响越大
-                    const force = (blockWeight / 4) * (1 - distance / 200) * 8 * CONFIG.COLLISION_FORCE;
+                    const force = (blockWeight / 4) * (1 - distance / 250) * 10 * CONFIG.COLLISION_FORCE;
                     
                     // 水平位移（向落点反方向推开）
-                    block.x += Math.sign(dx || 1) * force * 0.5;
+                    const horizShift = Math.sign(dx || 1) * force * 0.8;
+                    block.x += horizShift;
                     
                     // 垂直位移（上方积木被震高，下方积木被压低）
-                    block.y += Math.sign(impactY - block.y) * force * 0.3;
+                    const vertShift = Math.sign(impactY - block.y) * force * 0.5;
+                    block.y += vertShift;
+                    
+                    // 保存碰撞偏移用于动画
+                    if (!block.collisionOffset) block.collisionOffset = { x: 0, y: 0 };
+                    block.collisionOffset.x = horizShift * 0.5;
+                    block.collisionOffset.y = vertShift * 0.3;
                     
                     // 限制位移范围
                     block.x = Math.max(30, Math.min(CONFIG.CANVAS_WIDTH - 30, block.x));
                 }
             });
+            
+            // 触发更强烈的晃动
+            triggerBlockShake(baseShake);
         }
         
-        // 积木晃动动画
-        function triggerBlockShake() {
-            blockShake = { active: true, time: 25 };  // 增加晃动时间
+        // 积木晃动动画 - 增强版
+        function triggerBlockShake(intensity) {
+            blockShake = { active: true, time: intensity || 20 };
         }
         
-        // 更新晃动状态
+        // 更新晃动状态 - 增强偏移回归
         function updateBlockShake() {
             if (blockShake.active && blockShake.time > 0) {
                 blockShake.time--;
@@ -1033,12 +1054,23 @@
                 // 给积木添加微小随机偏移
                 game.blocks.forEach(block => {
                     if (block.shakeOffset === undefined) block.shakeOffset = 0;
-                    block.shakeOffset = (Math.random() - 0.5) * blockShake.time * 0.3;
+                    // 晃动强度随时间减弱
+                    const shakeIntensity = blockShake.time * 0.4;
+                    block.shakeOffset = (Math.random() - 0.5) * shakeIntensity;
+                    
+                    // 碰撞偏移逐渐回归
+                    if (block.collisionOffset) {
+                        block.collisionOffset.x *= 0.85;
+                        block.collisionOffset.y *= 0.85;
+                        if (Math.abs(block.collisionOffset.x) < 0.1) block.collisionOffset.x = 0;
+                        if (Math.abs(block.collisionOffset.y) < 0.1) block.collisionOffset.y = 0;
+                    }
                 });
             } else {
                 blockShake.active = false;
                 game.blocks.forEach(block => {
                     block.shakeOffset = 0;
+                    block.collisionOffset = { x: 0, y: 0 };
                 });
             }
         }
@@ -1126,6 +1158,16 @@
                 drawBlock(block, false);
             });
             
+            // 绘制落地闪光效果
+            if (landingFlash.active) {
+                ctx.fillStyle = 'rgba(255,255,255,' + landingFlash.alpha + ')';
+                ctx.fillRect(0, landingFlash.y + game.cameraY - 5, CONFIG.CANVAS_WIDTH, 10);
+                landingFlash.alpha -= 0.05;
+                if (landingFlash.alpha <= 0) {
+                    landingFlash.active = false;
+                }
+            }
+            
             ctx.restore(); // 相机变换结束
             
             // 绘制当前积木（固定在屏幕顶部，不受相机影响）
@@ -1138,13 +1180,44 @@
                     block.x = Math.max(50, Math.min(CONFIG.CANVAS_WIDTH - 50, block.x));
                 }
                 
-                // 下落动画
+                // 下落动画（带加速度）
                 if (block.dropping) {
-                    block.y += CONFIG.DROP_SPEED;
+                    // 初始化下落速度
+                    if (!block.currentSpeed) block.currentSpeed = CONFIG.DROP_SPEED;
+                    
+                    // 逐渐加速
+                    block.currentSpeed = Math.min(block.currentSpeed + CONFIG.DROP_ACCELERATION, CONFIG.MAX_DROP_SPEED);
+                    
+                    // 移动积木
+                    block.y += block.currentSpeed;
+                    
+                    // 绘制下落轨迹（从积木到落点，更明显）
+                    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([6, 6]);
+                    ctx.beginPath();
+                    ctx.moveTo(block.x, block.y + block.height);
+                    ctx.lineTo(block.x, block.targetY + block.height);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // 绘制速度线（动感效果）
+                    for (let i = 1; i <= 3; i++) {
+                        const lineY = block.y + block.height - i * 15;
+                        if (lineY > CONFIG.SPAWN_Y) {
+                            ctx.strokeStyle = 'rgba(255,255,255,' + (0.3 - i * 0.08) + ')';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.moveTo(block.x - block.width/3, lineY);
+                            ctx.lineTo(block.x + block.width/3, lineY);
+                            ctx.stroke();
+                        }
+                    }
                     
                     // 检查是否落到目标位置
                     if (block.y >= block.targetY) {
                         block.y = block.targetY;
+                        block.currentSpeed = 0; // 重置速度
                         // 触发放置完成
                         onBlockLanded();
                     }
@@ -1153,16 +1226,6 @@
                 // 绘制下落中的积木
                 if (!block.placed) {
                     drawBlock(block, true);
-                    
-                    // 绘制下落轨迹（从积木到底部）
-                    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-                    ctx.lineWidth = 2;
-                    ctx.setLineDash([8, 8]);
-                    ctx.beginPath();
-                    ctx.moveTo(block.x, block.y + block.height);
-                    ctx.lineTo(block.x, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT + game.cameraY);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
                 }
             }
             
@@ -1234,15 +1297,17 @@
             const y = isCurrentBlock ? CONFIG.SPAWN_Y : block.y;
             const cellSize = CONFIG.BLOCK_SIZE;
             
-            // 应用碰撞晃动效果
+            // 应用碰撞晃动效果和偏移
             const shakeOffsetX = block.shakeOffset || 0;
+            const collisionOffsetX = block.collisionOffset?.x || 0;
+            const collisionOffsetY = block.collisionOffset?.y || 0;
             
             // 绘制每个单元格
             block.shape.forEach((row, rowIndex) => {
                 row.forEach((cell, colIndex) => {
                     if (cell) {
-                        const cx = x + colIndex * cellSize + shakeOffsetX;
-                        const cy = y + rowIndex * cellSize;
+                        const cx = x + colIndex * cellSize + shakeOffsetX + collisionOffsetX;
+                        const cy = y + rowIndex * cellSize + collisionOffsetY;
                         
                         // 像素风格积木
                         ctx.fillStyle = block.color;
