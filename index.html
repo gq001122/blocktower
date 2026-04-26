@@ -774,10 +774,8 @@
         function spawnNextBlock() {
             game.currentBlock = game.nextBlock;
             game.currentBlock.x = game.baseX;
-            // 新积木显示在塔顶上方一个积木高度的位置
-            const towerTop = game.blocks.length === 0 ? game.baseY : 
-                Math.min(...game.blocks.map(b => b.y));
-            game.currentBlock.y = towerTop - CONFIG.BLOCK_SIZE * 1.5;
+            // 新积木固定在屏幕顶部位置（玩家眼前）
+            game.currentBlock.y = CONFIG.SPAWN_Y;
             game.currentBlock.dropping = false;
             game.currentBlock.placed = false;
             
@@ -1061,19 +1059,20 @@
             
             // 绘制背景元素
             ctx.save();
-            ctx.translate(game.shakeOffset.x, game.shakeOffset.y - game.cameraY);
+            // 相机向上移动时，塔向下移动（加cameraY）
+            ctx.translate(game.shakeOffset.x, game.shakeOffset.y + game.cameraY);
             
             drawBackgroundElements(bg);
             
-            // 绘制基座
+            // 绘制基座（固定在屏幕下方）
             drawBase();
             
-            // 绘制已放置的积木（跟随相机滚动）
+            // 绘制已放置的积木
             game.blocks.forEach(block => {
                 drawBlock(block, false);
             });
             
-            // 绘制当前积木（跟随相机，显示在塔顶上方）
+            // 绘制当前积木（固定在屏幕顶部）
             if (game.currentBlock && game.state === 'playing') {
                 // 应用风力影响
                 if (game.windOffset !== 0) {
@@ -1083,12 +1082,13 @@
                 
                 drawBlock(game.currentBlock, true);
                 
-                // 绘制下落轨迹（从当前积木到底部）
-                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-                ctx.setLineDash([5, 5]);
+                // 绘制下落轨迹（从当前积木到基座位置）
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([8, 8]);
                 ctx.beginPath();
-                ctx.moveTo(game.currentBlock.x, game.currentBlock.y);
-                ctx.lineTo(game.currentBlock.x, CONFIG.CANVAS_HEIGHT);
+                ctx.moveTo(game.currentBlock.x, game.currentBlock.y + game.currentBlock.height);
+                ctx.lineTo(game.currentBlock.x, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT);
                 ctx.stroke();
                 ctx.setLineDash([]);
             }
@@ -1116,25 +1116,27 @@
             
             for (let i = 0; i < 15; i++) {
                 const x = (i * 73 + Date.now() * 0.01) % (CONFIG.CANVAS_WIDTH + 100) - 50;
-                const y = ((i * 47 + game.cameraY * 0.3) % (CONFIG.CANVAS_HEIGHT + 200)) - 100;
+                // 背景元素向上滚动（相对移动）
+                const y = ((i * 47 - game.cameraY * 0.3) % (CONFIG.CANVAS_HEIGHT + 200)) - 100;
                 ctx.fillText(elements[i % elements.length], x, y);
             }
             
-            // 地面线
+            // 地面线（固定在屏幕下方）
             ctx.fillStyle = '#228B22';
-            ctx.fillRect(0, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - game.cameraY, CONFIG.CANVAS_WIDTH, CONFIG.BASE_HEIGHT);
+            ctx.fillRect(0, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT, CONFIG.CANVAS_WIDTH, CONFIG.BASE_HEIGHT);
             
             ctx.strokeStyle = '#006400';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(0, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - game.cameraY);
-            ctx.lineTo(CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - game.cameraY);
+            ctx.moveTo(0, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT);
+            ctx.lineTo(CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT);
             ctx.stroke();
         }
         
         function drawBase() {
             const x = game.baseX - 60;
-            const y = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - game.cameraY;
+            // 基座固定在屏幕下方
+            const y = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
             
             // 基座
             ctx.fillStyle = '#8B4513';
@@ -1157,8 +1159,8 @@
         
         function drawBlock(block, isCurrentBlock) {
             const x = block.x - block.width / 2;
-            // 当前控制的积木固定位置显示，已放置的积木跟随相机滚动
-            const y = isCurrentBlock ? CONFIG.SPAWN_Y : block.y - game.cameraY;
+            // 当前积木固定在屏幕顶部，已放置积木跟随相机
+            const y = isCurrentBlock ? CONFIG.SPAWN_Y : block.y;
             const cellSize = CONFIG.BLOCK_SIZE;
             
             // 应用碰撞晃动效果
