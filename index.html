@@ -879,8 +879,9 @@
                 for (let colIdx = 0; colIdx < block.shape[rowIdx].length; colIdx++) {
                     if (!block.shape[rowIdx][colIdx]) continue; // 跳过空格
                     
-                    // 计算这个单元格中心的X坐标
-                    const cellCenterX = block.x + (colIdx - (block.shape[0].length - 1) / 2) * cellSize;
+                    // 计算这个单元格左上角X坐标
+                    const cellLeftX = block.x - block.width / 2 + colIdx * cellSize;
+                    const cellCenterX = cellLeftX + cellSize / 2;
                     
                     // 找到这个单元格下方最近的支撑点
                     let cellSupportY = baseTopY;
@@ -889,12 +890,13 @@
                         const existLeft = existingBlock.x - existingBlock.width / 2;
                         const existRight = existingBlock.x + existingBlock.width / 2;
                         
-                        // 检查单元格是否在这个积木的水平范围内
-                        if (cellCenterX >= existLeft && cellCenterX < existRight) {
+                        // 检查单元格是否和下方积木有水平重叠
+                        // 只要单元格有任何部分在下方积木范围内，就作为支撑点
+                        if (cellCenterX >= existLeft && cellCenterX <= existRight) {
                             // 这个单元格落在现有积木上方
-                            const existTopY = existingBlock.y + existingBlock.height;
-                            if (existTopY < cellSupportY) {
-                                cellSupportY = existTopY;
+                            const existBottomY = existingBlock.y + existingBlock.height;
+                            if (existBottomY < cellSupportY) {
+                                cellSupportY = existBottomY;
                             }
                         }
                     }
