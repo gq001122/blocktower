@@ -868,11 +868,11 @@
             const blockLeft = block.x - blockWidth / 2;
             const blockRight = block.x + blockWidth / 2;
             
-            // 基座位置
-            const baseLandingY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
+            // 基座顶部Y坐标（Y越大越靠下）
+            const baseTopY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
             
-            // 找到积木可以落下的最高位置（Y值越小越高）
-            let highestLandingY = baseLandingY;
+            // 找到积木下方最高的支撑点
+            let supportY = baseTopY; // 默认落在基座上
             
             // 检查与每个已放置积木的碰撞
             for (let existingBlock of game.blocks) {
@@ -883,14 +883,15 @@
                 // 检查水平重叠
                 if (blockRight > existLeft && blockLeft < existRight) {
                     // 有重叠，积木可以落在这个积木上方
-                    if (existTop < highestLandingY) {
-                        highestLandingY = existTop;
+                    // 新的支撑点要比当前支撑点更高（Y值更小）
+                    if (existTop < supportY) {
+                        supportY = existTop;
                     }
                 }
             }
             
-            // 返回新积木的顶部Y坐标
-            return highestLandingY - block.height;
+            // 返回新积木的顶部Y坐标 = 支撑点 - 积木高度
+            return supportY - block.height;
         }
         
         // 检查积木是否与现有积木碰撞（精确碰撞检测）
@@ -1125,7 +1126,9 @@
                 drawBlock(block, false);
             });
             
-            // 绘制当前积木
+            ctx.restore(); // 相机变换结束
+            
+            // 绘制当前积木（固定在屏幕顶部，不受相机影响）
             if (game.currentBlock && game.state === 'playing') {
                 const block = game.currentBlock;
                 
@@ -1151,19 +1154,17 @@
                 if (!block.placed) {
                     drawBlock(block, true);
                     
-                    // 绘制下落轨迹
+                    // 绘制下落轨迹（从积木到底部）
                     ctx.strokeStyle = 'rgba(255,255,255,0.5)';
                     ctx.lineWidth = 2;
                     ctx.setLineDash([8, 8]);
                     ctx.beginPath();
                     ctx.moveTo(block.x, block.y + block.height);
-                    ctx.lineTo(block.x, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT);
+                    ctx.lineTo(block.x, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT + game.cameraY);
                     ctx.stroke();
                     ctx.setLineDash([]);
                 }
             }
-            
-            ctx.restore();
             
             // 绘制事件效果
             if (game.currentEvent) {
