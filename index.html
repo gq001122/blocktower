@@ -864,36 +864,56 @@
         
         function calculateLandingY() {
             const block = game.currentBlock;
-            
-            // 基座位置（积木只能落在基座上）
-            const baseY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
-            
-            // 检查精确碰撞
-            if (checkBlockCollision(block, baseY)) {
-                // 有碰撞，不允许放置
-                return -1;
-            }
-            
-            // 返回基座顶部位置
-            return baseY - block.height;
-        }
-        
-        // 检查积木是否与现有积木碰撞
-        function checkBlockCollision(block, targetY) {
-            const blockShape = block.shape;
             const blockWidth = block.width;
-            const blockHeight = block.height;
             const blockLeft = block.x - blockWidth / 2;
             const blockRight = block.x + blockWidth / 2;
+            
+            // 基座位置
+            const baseLandingY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
+            
+            // 找到积木可以落下的最高位置（Y值越小越高）
+            let highestLandingY = baseLandingY;
             
             // 检查与每个已放置积木的碰撞
             for (let existingBlock of game.blocks) {
                 const existLeft = existingBlock.x - existingBlock.width / 2;
                 const existRight = existingBlock.x + existingBlock.width / 2;
+                const existTop = existingBlock.y; // 已有积木的顶部Y
                 
                 // 检查水平重叠
                 if (blockRight > existLeft && blockLeft < existRight) {
-                    return true; // 有碰撞，不允许
+                    // 有重叠，积木可以落在这个积木上方
+                    if (existTop < highestLandingY) {
+                        highestLandingY = existTop;
+                    }
+                }
+            }
+            
+            // 返回新积木的顶部Y坐标
+            return highestLandingY - block.height;
+        }
+        
+        // 检查积木是否与现有积木碰撞（精确碰撞检测）
+        function checkBlockCollision(block, blockY) {
+            const blockWidth = block.width;
+            const blockLeft = block.x - blockWidth / 2;
+            const blockRight = block.x + blockWidth / 2;
+            const blockTop = blockY;
+            const blockBottom = blockY + block.height;
+            
+            // 检查与每个已放置积木的碰撞
+            for (let existingBlock of game.blocks) {
+                const existLeft = existingBlock.x - existingBlock.width / 2;
+                const existRight = existingBlock.x + existingBlock.width / 2;
+                const existTop = existingBlock.y;
+                const existBottom = existingBlock.y + existingBlock.height;
+                
+                // 检查水平重叠
+                if (blockRight > existLeft && blockLeft < existRight) {
+                    // 有水平重叠，检查垂直碰撞
+                    if (blockBottom > existTop && blockTop < existBottom) {
+                        return true; // 有碰撞
+                    }
                 }
             }
             return false; // 无碰撞
