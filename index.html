@@ -721,9 +721,7 @@
                 height: template.shape.length * CONFIG.BLOCK_SIZE,
                 dropping: true,
                 placed: false,
-                tilt: 0,
-                currentSpeed: 0,
-                collisionOffset: { x: 0, y: 0 }
+                currentSpeed: 0
             };
         }
         
@@ -804,14 +802,8 @@
             const block = game.currentBlock;
             if (!block || block.placed) return;
             
-            // 检查碰撞（防止重叠）
-            if (checkBlockCollision(block, block.y)) {
-                // 有碰撞，积木回到顶部
-                block.y = CONFIG.SPAWN_Y;
-                block.dropping = false;
-                showEventAlert('⚠️ 位置被占用！');
-                return;
-            }
+            // 不再检查"位置被占用"，让积木自由落下
+            // 积木会基于单元格自动找到正确的落点位置
             
             block.placed = true;
             block.dropping = false;
@@ -827,9 +819,6 @@
                 towerCollapse();
                 return;
             }
-            
-            // 碰撞影响
-            applyCollisionEffect(block);
             
             // 成功放置
             game.blocks.push(block);
@@ -1027,86 +1016,20 @@
             }, event.duration);
         }
         
-        // ==================== 碰撞物理效果 ====================
+        // ==================== 碰撞物理效果（简化版）====================
         let blockShake = { active: false, time: 0 };
         
-        // 计算碰撞影响 - 增强版
-        function applyCollisionEffect(newBlock) {
-            if (game.blocks.length === 0) return;
-            
-            const impactX = newBlock.x;
-            const impactY = newBlock.y;
-            
-            // 计算积木的重量（基于面积）
-            const blockWeight = newBlock.shape.flat().reduce((a, b) => a + b, 0);
-            
-            // 震动强度根据积木重量决定
-            const baseShake = blockWeight * 2;
-            
-            // 对每个已存在的积木计算碰撞影响
-            game.blocks.forEach(block => {
-                const dx = impactX - block.x;
-                const dy = impactY - block.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                // 影响范围扩大
-                if (distance < 250) {
-                    // 冲击力：重量越大、距离越近，影响越大
-                    const force = (blockWeight / 4) * (1 - distance / 250) * 10 * CONFIG.COLLISION_FORCE;
-                    
-                    // 水平位移（向落点反方向推开）
-                    const horizShift = Math.sign(dx || 1) * force * 0.8;
-                    block.x += horizShift;
-                    
-                    // 垂直位移（上方积木被震高，下方积木被压低）
-                    const vertShift = Math.sign(impactY - block.y) * force * 0.5;
-                    block.y += vertShift;
-                    
-                    // 保存碰撞偏移用于动画
-                    if (!block.collisionOffset) block.collisionOffset = { x: 0, y: 0 };
-                    block.collisionOffset.x = horizShift * 0.5;
-                    block.collisionOffset.y = vertShift * 0.3;
-                    
-                    // 限制位移范围
-                    block.x = Math.max(30, Math.min(CONFIG.CANVAS_WIDTH - 30, block.x));
-                }
-            });
-            
-            // 触发更强烈的晃动
-            triggerBlockShake(baseShake);
+        // 积木放置后轻微晃动（但不移动位置）
+        function triggerBlockShake() {
+            blockShake = { active: true, time: 8 }; // 轻微晃动
         }
         
-        // 积木晃动动画 - 增强版
-        function triggerBlockShake(intensity) {
-            blockShake = { active: true, time: intensity || 20 };
-        }
-        
-        // 更新晃动状态 - 增强偏移回归
+        // 更新晃动状态
         function updateBlockShake() {
             if (blockShake.active && blockShake.time > 0) {
                 blockShake.time--;
-                
-                // 给积木添加微小随机偏移
-                game.blocks.forEach(block => {
-                    if (block.shakeOffset === undefined) block.shakeOffset = 0;
-                    // 晃动强度随时间减弱
-                    const shakeIntensity = blockShake.time * 0.4;
-                    block.shakeOffset = (Math.random() - 0.5) * shakeIntensity;
-                    
-                    // 碰撞偏移逐渐回归
-                    if (block.collisionOffset) {
-                        block.collisionOffset.x *= 0.85;
-                        block.collisionOffset.y *= 0.85;
-                        if (Math.abs(block.collisionOffset.x) < 0.1) block.collisionOffset.x = 0;
-                        if (Math.abs(block.collisionOffset.y) < 0.1) block.collisionOffset.y = 0;
-                    }
-                });
             } else {
                 blockShake.active = false;
-                game.blocks.forEach(block => {
-                    block.shakeOffset = 0;
-                    block.collisionOffset = { x: 0, y: 0 };
-                });
             }
         }
         
@@ -1347,17 +1270,12 @@
             const y = isCurrentBlock ? CONFIG.SPAWN_Y : block.y;
             const cellSize = CONFIG.BLOCK_SIZE;
             
-            // 应用碰撞晃动效果和偏移
-            const shakeOffsetX = block.shakeOffset || 0;
-            const collisionOffsetX = block.collisionOffset?.x || 0;
-            const collisionOffsetY = block.collisionOffset?.y || 0;
-            
             // 绘制每个单元格
             block.shape.forEach((row, rowIndex) => {
                 row.forEach((cell, colIndex) => {
                     if (cell) {
-                        const cx = x + colIndex * cellSize + shakeOffsetX + collisionOffsetX;
-                        const cy = y + rowIndex * cellSize + collisionOffsetY;
+                        const cx = x + colIndex * cellSize;
+                        const cy = y + rowIndex * cellSize;
                         
                         // 像素风格积木
                         ctx.fillStyle = block.color;
