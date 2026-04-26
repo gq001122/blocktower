@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>谁是最高的积木塔1？</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #gameCanvas {
+            background: #16213e;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        /* 顶部信息栏 */
+        #topBar {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.7);
+            border: 3px solid #0f3460;
+            color: #fff;
+            font-size: 14px;
+            z-index: 10;
+        }
+        
+        #topBar .stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        #topBar .stat span {
+            color: #e94560;
+            font-weight: bold;
+        }
+        
+        #leaderboardBtn {
+            background: #e94560;
+            border: none;
+            color: #fff;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+        
+        #leaderboardBtn:hover {
+            background: #ff6b6b;
+        }
+        
+        /* 左侧面板 */
+        #leftPanel {
+            position: absolute;
+            left: 10px;
+            top: 70px;
+            width: 120px;
+            padding: 10px;
+            background: rgba(0,0,0,0.7);
+            border: 3px solid #0f3460;
+            color: #fff;
+            font-size: 12px;
+            z-index: 10;
+        }
+        
+        #leftPanel h3 {
+            color: #e94560;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        #leftPanel .record {
+            margin: 5px 0;
+        }
+        
+        #leftPanel .record span {
+            color: #4ecca3;
+        }
+        
+        /* 右侧面板 */
+        #rightPanel {
+            position: absolute;
+            right: 10px;
+            top: 70px;
+            width: 120px;
+            padding: 10px;
+            background: rgba(0,0,0,0.7);
+            border: 3px solid #0f3460;
+            color: #fff;
+            font-size: 12px;
+            z-index: 10;
+        }
+        
+        #rightPanel h3 {
+            color: #e94560;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        #nextBlock {
+            width: 80px;
+            height: 80px;
+            margin: 10px auto;
+            border: 2px dashed #0f3460;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #comboCount {
+            text-align: center;
+            color: #ffd93d;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        /* 事件提示 */
+        #eventAlert {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            background: rgba(233,69,96,0.9);
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 5px;
+            display: none;
+            z-index: 20;
+            animation: pulse 0.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+        }
+        
+        /* 开始界面 */
+        #startScreen, #gameOverScreen, #leaderboardScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26,26,46,0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        #startScreen h1, #gameOverScreen h1, #leaderboardScreen h1 {
+            color: #e94560;
+            font-size: 36px;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px 0 #000;
+        }
+        
+        .menuBtn {
+            background: #e94560;
+            border: none;
+            color: #fff;
+            padding: 15px 40px;
+            margin: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 5px;
+            transition: transform 0.2s;
+        }
+        
+        .menuBtn:hover {
+            transform: scale(1.05);
+            background: #ff6b6b;
+        }
+        
+        #playerNameInput {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-family: inherit;
+            border: 3px solid #0f3460;
+            background: #16213e;
+            color: #fff;
+            margin: 10px;
+            width: 200px;
+            text-align: center;
+        }
+        
+        #playerNameInput::placeholder {
+            color: #666;
+        }
+        
+        /* 游戏结束界面 */
+        #gameOverScreen .stats {
+            color: #fff;
+            font-size: 18px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        #gameOverScreen .stats div {
+            margin: 10px 0;
+        }
+        
+        #gameOverScreen .stats span {
+            color: #4ecca3;
+            font-weight: bold;
+        }
+        
+        /* 排行榜 */
+        #leaderboardScreen {
+            display: none;
+        }
+        
+        #leaderboardList {
+            width: 80%;
+            max-width: 400px;
+            max-height: 60vh;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.5);
+            border: 3px solid #0f3460;
+            padding: 10px;
+        }
+        
+        .rankItem {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #0f3460;
+            color: #fff;
+            font-size: 12px;
+        }
+        
+        .rankItem:nth-child(1) { background: rgba(255,215,0,0.3); }
+        .rankItem:nth-child(2) { background: rgba(192,192,192,0.3); }
+        .rankItem:nth-child(3) { background: rgba(205,127,50,0.3); }
+        
+        .rankItem.current {
+            background: rgba(233,69,96,0.5);
+            border: 2px solid #e94560;
+        }
+        
+        .rankNum {
+            width: 30px;
+            color: #ffd93d;
+            font-weight: bold;
+        }
+        
+        .rankName {
+            flex: 1;
+            margin-left: 10px;
+        }
+        
+        .rankHeight {
+            width: 60px;
+            text-align: right;
+            color: #4ecca3;
+        }
+        
+        .rankTime {
+            width: 50px;
+            text-align: right;
+            color: #888;
+        }
+        
+        #closeLeaderboard {
+            margin-top: 20px;
+        }
+        
+        /* 操作提示 */
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #666;
+            font-size: 12px;
+            z-index: 10;
+        }
+        
+        /* 移动端控制 */
+        #mobileControls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: none;
+            justify-content: center;
+            gap: 50px;
+            z-index: 10;
+        }
+        
+        .mobileBtn {
+            width: 70px;
+            height: 70px;
+            background: rgba(233,69,96,0.8);
+            border: 3px solid #fff;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .mobileBtn:active {
+            background: #e94560;
+            transform: scale(0.95);
+        }
+        
+        #dropBtn {
+            width: 90px;
+            height: 90px;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            #mobileControls {
+                display: flex;
+            }
+            #controls {
+                display: none;
+            }
+            #leftPanel, #rightPanel {
+                width: 80px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- 顶部信息栏 -->
+        <div id="topBar">
+            <div class="stat">🏗️ 高度: <span id="heightDisplay">0</span>层</div>
+            <div class="stat">🧱 积木: <span id="blockCount">0</span>个</div>
+            <div class="stat">⏱️ <span id="timeDisplay">00:00</span></div>
+            <button id="leaderboardBtn">🏆 排行榜</button>
+        </div>
+        
+        <!-- 左侧面板 -->
+        <div id="leftPanel">
+            <h3>📊 历史记录</h3>
+            <div class="record">最高: <span id="bestHeight">0</span>层</div>
+            <div class="record">最佳用时: <span id="bestTime">--:--</span></div>
+            <div class="record">总积木: <span id="totalBlocks">0</span></div>
+        </div>
+        
+        <!-- 右侧面板 -->
+        <div id="rightPanel">
+            <h3>📦 下一个</h3>
+            <div id="nextBlock"></div>
+            <div id="comboCount">🔥 0连击</div>
+        </div>
+        
+        <!-- 事件提示 -->
+        <div id="eventAlert"></div>
+        
+        <!-- 开始界面 -->
+        <div id="startScreen">
+            <h1>🏗️ 谁是最高的积木塔1？</h1>
+            <input type="text" id="playerNameInput" placeholder="输入你的名字" maxlength="10">
+            <button class="menuBtn" id="startBtn">▶️ 开始游戏</button>
+            <button class="menuBtn" id="rankBtn">🏆 排行榜</button>
+        </div>
+        
+        <!-- 游戏结束界面 -->
+        <div id="gameOverScreen">
+            <h1>💥 塔倒了！</h1>
+            <div class="stats">
+                <div>🏗️ 最终高度: <span id="finalHeight">0</span>层</div>
+                <div>🧱 使用积木: <span id="finalBlocks">0</span>个</div>
+                <div>⏱️ 用时: <span id="finalTime">00:00</span></div>
+                <div>⭐ 得分: <span id="finalScore">0</span></div>
+            </div>
+            <button class="menuBtn" id="restartBtn">🔄 再来一局</button>
+            <button class="menuBtn" id="viewRankBtn">🏆 查看排行榜</button>
+        </div>
+        
+        <!-- 排行榜界面 -->
+        <div id="leaderboardScreen">
+            <h1>🏆 全球排行榜</h1>
+            <div id="leaderboardList"></div>
+            <button class="menuBtn" id="closeLeaderboard">← 返回</button>
+        </div>
+        
+        <!-- 操作提示 -->
+        <div id="controls">← → 移动积木 | 空格 投放</div>
+        
+        <!-- 移动端控制 -->
+        <div id="mobileControls">
+            <div class="mobileBtn" id="leftBtn">◀</div>
+            <div class="mobileBtn" id="dropBtn">投放</div>
+            <div class="mobileBtn" id="rightBtn">▶</div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 游戏配置 ====================
+        const CONFIG = {
+            BLOCK_SIZE: 40,
+            CANVAS_WIDTH: 400,
+            CANVAS_HEIGHT: 600,
+            BASE_HEIGHT: 50,
+            DROP_SPEED: 3,
+            MOVE_SPEED: 5,
+            TILT_THRESHOLD: 15, // 倾斜阈值（度）
+            PERFECT_THRESHOLD: 5, // 完美放置阈值（像素）
+            EVENT_INTERVAL: 5, // 每N个积木触发一次事件
+            EVENT_CHANCE: 0.3, // 事件触发概率
+        };
+        
+        // ==================== 俄罗斯方块7种形状 ====================
+        const TETROMINO_SHAPES = {
+            I: {
+                shape: [[1,1,1,1]],
+                color: '#00CED1', // 青色
+                name: 'I形',
+                difficulty: 1
+            },
+            O: {
+                shape: [[1,1],[1,1]],
+                color: '#FFD700', // 黄色
+                name: 'O形',
+                difficulty: 1
+            },
+            T: {
+                shape: [[0,1,0],[1,1,1]],
+                color: '#9932CC', // 紫色
+                name: 'T形',
+                difficulty: 2
+            },
+            S: {
+                shape: [[0,1,1],[1,1,0]],
+                color: '#32CD32', // 绿色
+                name: 'S形',
+                difficulty: 2
+            },
+            Z: {
+                shape: [[1,1,0],[0,1,1]],
+                color: '#FF4500', // 红色
+                name: 'Z形',
+                difficulty: 2
+            },
+            J: {
+                shape: [[1,0,0],[1,1,1]],
+                color: '#4169E1', // 蓝色
+                name: 'J形',
+                difficulty: 3
+            },
+            L: {
+                shape: [[0,0,1],[1,1,1]],
+                color: '#FF8C00', // 橙色
+                name: 'L形',
+                difficulty: 3
+            }
+        };
+        
+        // ==================== 背景主题 ====================
+        const BACKGROUNDS = [
+            { height: 0, theme: 'grass', bgColor: '#87CEEB', elements: ['🌱','🌸','🌿'] },
+            { height: 10, theme: 'town', bgColor: '#B0C4DE', elements: ['🏠','🌳','🚗'] },
+            { height: 20, theme: 'city', bgColor: '#708090', elements: ['🏢','🏬','🏗️'] },
+            { height: 30, theme: 'mountain', bgColor: '#DEB887', elements: ['⛰️','🦅','🌲'] },
+            { height: 40, theme: 'cloud', bgColor: '#E6E6FA', elements: ['☁️','🎈','🪁'] },
+            { height: 50, theme: 'night', bgColor: '#191970', elements: ['🌙','⭐','✨'] },
+            { height: 60, theme: 'space', bgColor: '#000033', elements: ['🪐','🌟','🚀'] },
+            { height: 80, theme: 'deep', bgColor: '#0a0a1a', elements: ['💫','🔮','⚫'] }
+        ];
+        
+        // ==================== 随机事件 ====================
+        const EVENTS = [
+            { name: '🌬️ 微风', effect: 'wind_light', duration: 3000, intensity: 3 },
+            { name: '💨 强风', effect: 'wind_strong', duration: 5000, intensity: 10 },
+            { name: '🐦 小鸟', effect: 'bird', duration: 2000, intensity: 2 },
+            { name: '✈️ 客机', effect: 'plane', duration: 4000, intensity: 5 },
+            { name: '🚀 飞船', effect: 'ufo', duration: 6000, intensity: 8 },
+            { name: '🦸 超人', effect: 'superman', duration: 1500, intensity: 20 },
+            { name: '⚡ 闪电', effect: 'lightning', duration: 3000, intensity: 12 },
+            { name: '🌧️ 暴风雨', effect: 'storm', duration: 8000, intensity: 15 }
+        ];
+        
+        // ==================== 游戏状态 ====================
+        let game = {
+            state: 'start', // start, playing, gameover
+            playerName: '玩家',
+            uid: '',
+            height: 0,
+            blockCount: 0,
+            startTime: 0,
+            elapsedTime: 0,
+            combo: 0,
+            bestHeight: 0,
+            bestTime: 0,
+            totalBlocks: 0,
+            currentBlock: null,
+            nextBlock: null,
+            blocks: [], // 已放置的积木
+            baseX: 0,
+            baseY: 0,
+            cameraY: 0,
+            targetCameraY: 0,
+            currentEvent: null,
+            eventTimer: null,
+            backgroundTheme: 0,
+            windOffset: 0,
+            shakeOffset: { x: 0, y: 0 },
+            towerTilt: 0 // 塔的整体倾斜角度
+        };
+        
+        // ==================== Canvas设置 ====================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            const ratio = CONFIG.CANVAS_WIDTH / CONFIG.CANVAS_HEIGHT;
+            
+            let width = container.clientWidth;
+            let height = container.clientHeight;
+            
+            if (width / height > ratio) {
+                width = height * ratio;
+            } else {
+                height = width / ratio;
+            }
+            
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+            canvas.width = CONFIG.CANVAS_WIDTH;
+            canvas.height = CONFIG.CANVAS_HEIGHT;
+            
+            game.baseX = CONFIG.CANVAS_WIDTH / 2;
+            game.baseY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // ==================== 生成UID ====================
+        function generateUID() {
+            return 'U' + Math.random().toString(36).substr(2, 8).toUpperCase();
+        }
+        
+        // ==================== 排行榜管理 ====================
+        function getLeaderboard() {
+            const data = localStorage.getItem('blockTower_leaderboard');
+            return data ? JSON.parse(data) : [];
+        }
+        
+        function saveScore(playerName, height, blocks, time) {
+            const leaderboard = getLeaderboard();
+            const score = {
+                uid: generateUID(),
+                name: playerName,
+                height: height,
+                blocks: blocks,
+                time: time,
+                score: height * 10 + blocks * 5,
+                date: new Date().toISOString()
+            };
+            
+            leaderboard.push(score);
+            leaderboard.sort((a, b) => b.height - a.height || a.time - b.time);
+            
+            // 只保留前100名
+            if (leaderboard.length > 100) {
+                leaderboard.length = 100;
+            }
+            
+            localStorage.setItem('blockTower_leaderboard', JSON.stringify(leaderboard));
+            
+            return leaderboard.findIndex(s => s.uid === score.uid) + 1;
+        }
+        
+        function getPlayerRank(uid) {
+            const leaderboard = getLeaderboard();
+            return leaderboard.findIndex(s => s.uid === uid) + 1;
+        }
+        
+        function displayLeaderboard() {
+            const list = document.getElementById('leaderboardList');
+            const leaderboard = getLeaderboard();
+            
+            list.innerHTML = '';
+            
+            leaderboard.forEach((player, index) => {
+                const item = document.createElement('div');
+                item.className = 'rankItem' + (player.uid === game.uid ? ' current' : '');
+                item.innerHTML = `
+                    <span class="rankNum">#${index + 1}</span>
+                    <span class="rankName">${player.name}</span>
+                    <span class="rankHeight">${player.height}层</span>
+                    <span class="rankTime">${formatTime(player.time)}</span>
+                `;
+                list.appendChild(item);
+            });
+            
+            if (leaderboard.length === 0) {
+                list.innerHTML = '<div style="color:#666;text-align:center;padding:20px;">暂无记录</div>';
+            }
+        }
+        
+        // ==================== 工具函数 ====================
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function getRandomBlockType(height) {
+            const types = Object.keys(TETROMINO_SHAPES);
+            
+            // 根据高度限制可用形状
+            if (height < 10) {
+                return Math.random() > 0.5 ? 'I' : 'O';
+            } else if (height < 20) {
+                return ['I', 'O', 'T'][Math.floor(Math.random() * 3)];
+            } else if (height < 30) {
+                return ['I', 'O', 'T', 'S', 'Z'][Math.floor(Math.random() * 5)];
+            } else {
+                return types[Math.floor(Math.random() * types.length)];
+            }
+        }
+        
+        function createBlock(type) {
+            const template = TETROMINO_SHAPES[type];
+            return {
+                type: type,
+                shape: template.shape.map(row => [...row]),
+                color: template.color,
+                name: template.name,
+                x: game.baseX,
+                y: 50,
+                width: template.shape[0].length * CONFIG.BLOCK_SIZE,
+                height: template.shape.length * CONFIG.BLOCK_SIZE,
+                dropping: true,
+                placed: false,
+                tilt: 0
+            };
+        }
+        
+        function getBackground(height) {
+            let bg = BACKGROUNDS[0];
+            for (let i = BACKGROUNDS.length - 1; i >= 0; i--) {
+                if (height >= BACKGROUNDS[i].height) {
+                    bg = BACKGROUNDS[i];
+                    break;
+                }
+            }
+            return bg;
+        }
+        
+        // ==================== 游戏逻辑 ====================
+        function startGame() {
+            const nameInput = document.getElementById('playerNameInput');
+            game.playerName = nameInput.value.trim() || '匿名玩家';
+            
+            // 加载历史记录
+            const stats = localStorage.getItem('blockTower_stats');
+            if (stats) {
+                const s = JSON.parse(stats);
+                game.bestHeight = s.bestHeight || 0;
+                game.bestTime = s.bestTime || 0;
+                game.totalBlocks = s.totalBlocks || 0;
+            }
+            
+            game.uid = generateUID();
+            game.state = 'playing';
+            game.height = 0;
+            game.blockCount = 0;
+            game.startTime = Date.now();
+            game.elapsedTime = 0;
+            game.combo = 0;
+            game.blocks = [];
+            game.cameraY = 0;
+            game.targetCameraY = 0;
+            game.currentEvent = null;
+            game.towerTilt = 0;
+            
+            // 创建初始积木
+            game.nextBlock = createBlock(getRandomBlockType(0));
+            spawnNextBlock();
+            
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'none';
+            
+            updateUI();
+        }
+        
+        function spawnNextBlock() {
+            game.currentBlock = game.nextBlock;
+            game.currentBlock.x = game.baseX;
+            game.currentBlock.y = 50 - game.cameraY;
+            game.currentBlock.dropping = true;
+            game.currentBlock.placed = false;
+            
+            game.nextBlock = createBlock(getRandomBlockType(game.height));
+            drawNextBlock();
+        }
+        
+        function dropBlock() {
+            if (!game.currentBlock || !game.currentBlock.dropping) return;
+            
+            game.currentBlock.dropping = false;
+            game.currentBlock.placed = true;
+            
+            // 计算落点
+            const targetY = calculateLandingY();
+            game.currentBlock.y = targetY;
+            
+            // 检查平衡
+            const tilt = calculateTowerTilt();
+            game.towerTilt = tilt;
+            
+            if (Math.abs(tilt) > CONFIG.TILT_THRESHOLD) {
+                // 塔倒塌
+                towerCollapse();
+                return;
+            }
+            
+            // 成功放置
+            game.blocks.push(game.currentBlock);
+            game.blockCount++;
+            game.height++;
+            
+            // 更新相机
+            game.targetCameraY = Math.max(0, (game.height - 8) * CONFIG.BLOCK_SIZE);
+            
+            // 检查完美放置
+            const centerOffset = Math.abs(game.currentBlock.x - game.baseX);
+            if (centerOffset < CONFIG.PERFECT_THRESHOLD) {
+                game.combo++;
+            } else {
+                game.combo = 0;
+            }
+            
+            // 检查随机事件
+            if (game.blockCount % CONFIG.EVENT_INTERVAL === 0) {
+                if (Math.random() < CONFIG.EVENT_CHANCE) {
+                    triggerRandomEvent();
+                }
+            }
+            
+            // 检查背景变化
+            const newBg = getBackground(game.height);
+            const oldBg = getBackground(game.height - 1);
+            if (newBg.theme !== oldBg.theme) {
+                showEventAlert('🎉 ' + newBg.theme.toUpperCase() + ' 关卡!');
+            }
+            
+            updateUI();
+            
+            // 下一块积木
+            setTimeout(() => {
+                if (game.state === 'playing') {
+                    spawnNextBlock();
+                }
+            }, 300);
+        }
+        
+        function calculateLandingY() {
+            if (game.blocks.length === 0) {
+                return game.baseY - game.currentBlock.height;
+            }
+            
+            // 找到最顶层积木
+            let topY = game.baseY;
+            game.blocks.forEach(block => {
+                if (block.y < topY) {
+                    topY = block.y;
+                }
+            });
+            
+            return topY - game.currentBlock.height;
+        }
+        
+        function calculateTowerTilt() {
+            if (game.blocks.length < 2) return 0;
+            
+            // 计算整体偏移
+            let totalOffset = 0;
+            game.blocks.forEach(block => {
+                totalOffset += block.x - game.baseX;
+            });
+            
+            const avgOffset = totalOffset / game.blocks.length;
+            const height = game.blocks.length * CONFIG.BLOCK_SIZE;
+            
+            // 转换为角度
+            const tiltAngle = Math.atan2(avgOffset, height) * (180 / Math.PI);
+            return tiltAngle;
+        }
+        
+        function towerCollapse() {
+            game.state = 'gameover';
+            
+            // 保存历史记录
+            const stats = {
+                bestHeight: Math.max(game.bestHeight, game.height),
+                bestTime: game.bestTime === 0 ? game.elapsedTime : Math.min(game.bestTime, game.elapsedTime),
+                totalBlocks: game.totalBlocks + game.blockCount
+            };
+            localStorage.setItem('blockTower_stats', JSON.stringify(stats));
+            
+            // 保存分数
+            const rank = saveScore(game.playerName, game.height, game.blockCount, game.elapsedTime);
+            
+            // 显示结束界面
+            document.getElementById('finalHeight').textContent = game.height;
+            document.getElementById('finalBlocks').textContent = game.blockCount;
+            document.getElementById('finalTime').textContent = formatTime(game.elapsedTime);
+            document.getElementById('finalScore').textContent = game.height * 10 + game.blockCount * 5;
+            
+            setTimeout(() => {
+                document.getElementById('gameOverScreen').style.display = 'flex';
+            }, 1000);
+        }
+        
+        function triggerRandomEvent() {
+            const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+            game.currentEvent = event;
+            
+            showEventAlert(event.name);
+            
+            // 应用事件效果
+            if (event.effect.includes('wind')) {
+                game.windOffset = event.intensity * (event.effect === 'wind_strong' ? 1 : -1);
+            } else if (event.effect === 'lightning' || event.effect === 'storm' || event.effect === 'superman') {
+                game.shakeOffset = { 
+                    x: (Math.random() - 0.5) * event.intensity * 2,
+                    y: (Math.random() - 0.5) * event.intensity * 2
+                };
+            }
+            
+            clearTimeout(game.eventTimer);
+            game.eventTimer = setTimeout(() => {
+                game.currentEvent = null;
+                game.windOffset = 0;
+                game.shakeOffset = { x: 0, y: 0 };
+            }, event.duration);
+        }
+        
+        function showEventAlert(text) {
+            const alert = document.getElementById('eventAlert');
+            alert.textContent = text;
+            alert.style.display = 'block';
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 2000);
+        }
+        
+        function updateUI() {
+            document.getElementById('heightDisplay').textContent = game.height;
+            document.getElementById('blockCount').textContent = game.blockCount;
+            document.getElementById('timeDisplay').textContent = formatTime(game.elapsedTime);
+            document.getElementById('bestHeight').textContent = game.bestHeight;
+            document.getElementById('bestTime').textContent = game.bestTime > 0 ? formatTime(game.bestTime) : '--:--';
+            document.getElementById('totalBlocks').textContent = game.totalBlocks;
+            document.getElementById('comboCount').textContent = '🔥 ' + game.combo + '连击';
+        }
+        
+        function drawNextBlock() {
+            const container = document.getElementById('nextBlock');
+            const block = game.nextBlock;
+            const cellSize = 15;
+            
+            let html = '<div style="display:grid;grid-template-columns:repeat(' + block.shape[0].length + ',' + cellSize + 'px);gap:1px;">';
+            
+            block.shape.forEach(row => {
+                row.forEach(cell => {
+                    if (cell) {
+                        html += '<div style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:' + block.color + ';border:1px solid rgba(0,0,0,0.3);"></div>';
+                    } else {
+                        html += '<div style="width:' + cellSize + 'px;height:' + cellSize + 'px;"></div>';
+                    }
+                });
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // ==================== 绘制函数 ====================
+        function draw() {
+            ctx.clearRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+            
+            // 更新相机
+            game.cameraY += (game.targetCameraY - game.cameraY) * 0.1;
+            
+            // 更新时间和应用效果
+            if (game.state === 'playing') {
+                game.elapsedTime = Math.floor((Date.now() - game.startTime) / 1000);
+                updateUI();
+                
+                // 随机震动衰减
+                if (game.shakeOffset.x !== 0 || game.shakeOffset.y !== 0) {
+                    game.shakeOffset.x *= 0.95;
+                    game.shakeOffset.y *= 0.95;
+                }
+            }
+            
+            const bg = getBackground(game.height);
+            
+            // 绘制背景
+            ctx.fillStyle = bg.bgColor;
+            ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+            
+            // 绘制背景元素
+            ctx.save();
+            ctx.translate(game.shakeOffset.x, game.shakeOffset.y - game.cameraY);
+            
+            drawBackgroundElements(bg);
+            
+            // 绘制基座
+            drawBase();
+            
+            // 绘制已放置的积木
+            game.blocks.forEach(block => {
+                drawBlock(block);
+            });
+            
+            // 绘制当前积木
+            if (game.currentBlock && game.state === 'playing') {
+                // 应用风力影响
+                if (game.windOffset !== 0) {
+                    game.currentBlock.x += game.windOffset * 0.1;
+                    game.currentBlock.x = Math.max(50, Math.min(CONFIG.CANVAS_WIDTH - 50, game.currentBlock.x));
+                }
+                
+                // 更新掉落位置
+                if (game.currentBlock.dropping) {
+                    game.currentBlock.y += CONFIG.DROP_SPEED;
+                    const landingY = calculateLandingY();
+                    if (game.currentBlock.y >= landingY) {
+                        dropBlock();
+                    }
+                }
+                
+                if (game.currentBlock) {
+                    drawBlock(game.currentBlock);
+                }
+                
+                // 绘制下落轨迹
+                if (game.currentBlock && game.currentBlock.dropping) {
+                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(game.currentBlock.x, game.currentBlock.y + game.currentBlock.height);
+                    ctx.lineTo(game.currentBlock.x, game.baseY - game.cameraY);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+            
+            ctx.restore();
+            
+            // 绘制事件效果
+            if (game.currentEvent) {
+                drawEventEffect();
+            }
+            
+            // 游戏结束动画
+            if (game.state === 'gameover') {
+                drawGameOver();
+            }
+            
+            requestAnimationFrame(draw);
+        }
+        
+        function drawBackgroundElements(bg) {
+            const elements = ['🌱','🌸','🌿','🏠','🌳','🚗','🏢','🏬','🏗️','⛰️','🦅','🌲','☁️','🎈','🪁','🌙','⭐','✨','🪐','🌟','🚀','💫','🔮','⚫'];
+            
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            
+            for (let i = 0; i < 15; i++) {
+                const x = (i * 73 + Date.now() * 0.01) % (CONFIG.CANVAS_WIDTH + 100) - 50;
+                const y = ((i * 47 + game.cameraY * 0.3) % (CONFIG.CANVAS_HEIGHT + 200)) - 100;
+                ctx.fillText(elements[i % elements.length], x, y);
+            }
+            
+            // 地面线
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, game.baseY - game.cameraY + 20, CONFIG.CANVAS_WIDTH, CONFIG.BASE_HEIGHT);
+            
+            ctx.strokeStyle = '#006400';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, game.baseY - game.cameraY + 20);
+            ctx.lineTo(CONFIG.CANVAS_WIDTH, game.baseY - game.cameraY + 20);
+            ctx.stroke();
+        }
+        
+        function drawBase() {
+            const x = game.baseX - 80;
+            const y = game.baseY - game.cameraY;
+            
+            // 基座
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(x, y, 160, CONFIG.BASE_HEIGHT);
+            
+            // 基座纹理
+            ctx.strokeStyle = '#654321';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 4; i++) {
+                ctx.beginPath();
+                ctx.moveTo(x + i * 40, y);
+                ctx.lineTo(x + i * 40, y + CONFIG.BASE_HEIGHT);
+                ctx.stroke();
+            }
+            
+            // 基座顶部高光
+            ctx.fillStyle = '#A0522D';
+            ctx.fillRect(x, y, 160, 5);
+        }
+        
+        function drawBlock(block) {
+            const x = block.x - block.width / 2;
+            const y = block.y;
+            const cellSize = CONFIG.BLOCK_SIZE;
+            
+            // 绘制每个单元格
+            block.shape.forEach((row, rowIndex) => {
+                row.forEach((cell, colIndex) => {
+                    if (cell) {
+                        const cx = x + colIndex * cellSize;
+                        const cy = y + rowIndex * cellSize;
+                        
+                        // 像素风格积木
+                        ctx.fillStyle = block.color;
+                        ctx.fillRect(cx, cy, cellSize, cellSize);
+                        
+                        // 边框
+                        ctx.strokeStyle = shadeColor(block.color, -30);
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(cx, cy, cellSize, cellSize);
+                        
+                        // 高光
+                        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                        ctx.fillRect(cx + 2, cy + 2, cellSize - 4, 4);
+                        
+                        // 像素点装饰
+                        ctx.fillStyle = shadeColor(block.color, 20);
+                        ctx.fillRect(cx + cellSize - 8, cy + cellSize - 8, 4, 4);
+                    }
+                });
+            });
+        }
+        
+        function shadeColor(color, percent) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + 
+                (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 + 
+                (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 + 
+                (B < 255 ? (B < 1 ? 0 : B) : 255)
+            ).toString(16).slice(1);
+        }
+        
+        function drawEventEffect() {
+            const event = game.currentEvent;
+            
+            if (event.effect === 'lightning') {
+                // 闪电效果
+                if (Math.random() > 0.7) {
+                    ctx.fillStyle = 'rgba(255,255,255,' + Math.random() * 0.5 + ')';
+                    ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+                }
+            } else if (event.effect === 'storm') {
+                // 雨滴效果
+                ctx.fillStyle = 'rgba(100,149,237,0.5)';
+                for (let i = 0; i < 50; i++) {
+                    const x = Math.random() * CONFIG.CANVAS_WIDTH;
+                    const y = Math.random() * CONFIG.CANVAS_HEIGHT;
+                    ctx.fillRect(x, y, 1, 10);
+                }
+            } else if (event.effect === 'ufo') {
+                // 飞船吸力波纹
+                ctx.strokeStyle = 'rgba(0,255,255,0.3)';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 3; i++) {
+                    const radius = 50 + i * 30 + (Date.now() * 0.1 % 30);
+                    ctx.beginPath();
+                    ctx.arc(CONFIG.CANVAS_WIDTH / 2, 100 - game.cameraY, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        function drawGameOver() {
+            // 积木倒塌动画
+            game.blocks.forEach(block => {
+                block.y += 5;
+                block.x += (Math.random() - 0.5) * 10;
+            });
+        }
+        
+        // ==================== 控制输入 ====================
+        document.addEventListener('keydown', (e) => {
+            if (game.state !== 'playing' || !game.currentBlock) return;
+            
+            switch (e.key) {
+                case 'ArrowLeft':
+                    game.currentBlock.x -= CONFIG.MOVE_SPEED;
+                    game.currentBlock.x = Math.max(50, game.currentBlock.x);
+                    break;
+                case 'ArrowRight':
+                    game.currentBlock.x += CONFIG.MOVE_SPEED;
+                    game.currentBlock.x = Math.min(CONFIG.CANVAS_WIDTH - 50, game.currentBlock.x);
+                    break;
+                case ' ':
+                    e.preventDefault();
+                    dropBlock();
+                    break;
+            }
+        });
+        
+        // 移动端控制
+        let touchInterval = null;
+        
+        document.getElementById('leftBtn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (game.currentBlock) {
+                game.currentBlock.x -= CONFIG.MOVE_SPEED;
+                game.currentBlock.x = Math.max(50, game.currentBlock.x);
+            }
+        });
+        
+        document.getElementById('rightBtn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (game.currentBlock) {
+                game.currentBlock.x += CONFIG.MOVE_SPEED;
+                game.currentBlock.x = Math.min(CONFIG.CANVAS_WIDTH - 50, game.currentBlock.x);
+            }
+        });
+        
+        document.getElementById('dropBtn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            dropBlock();
+        });
+        
+        // 按钮事件
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            startGame();
+        });
+        
+        document.getElementById('leaderboardBtn').addEventListener('click', () => {
+            displayLeaderboard();
+            document.getElementById('leaderboardScreen').style.display = 'flex';
+        });
+        
+        document.getElementById('rankBtn').addEventListener('click', () => {
+            displayLeaderboard();
+            document.getElementById('leaderboardScreen').style.display = 'flex';
+        });
+        
+        document.getElementById('viewRankBtn').addEventListener('click', () => {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            displayLeaderboard();
+            document.getElementById('leaderboardScreen').style.display = 'flex';
+        });
+        
+        document.getElementById('closeLeaderboard').addEventListener('click', () => {
+            document.getElementById('leaderboardScreen').style.display = 'none';
+            if (game.state === 'gameover') {
+                document.getElementById('gameOverScreen').style.display = 'flex';
+            }
+        });
+        
+        // 触摸滑动控制
+        let touchStartX = 0;
+        
+        canvas.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            if (!game.currentBlock) return;
+            
+            const touchX = e.touches[0].clientX;
+            const diff = touchX - touchStartX;
+            
+            if (Math.abs(diff) > 10) {
+                game.currentBlock.x += diff > 0 ? CONFIG.MOVE_SPEED : -CONFIG.MOVE_SPEED;
+                game.currentBlock.x = Math.max(50, Math.min(CONFIG.CANVAS_WIDTH - 50, game.currentBlock.x));
+                touchStartX = touchX;
+            }
+        });
+        
+        canvas.addEventListener('touchend', (e) => {
+            // 轻点投放
+            const touchDuration = e.timeStamp - (this.touchStartTime || 0);
+            if (touchDuration < 200 && game.currentBlock) {
+                dropBlock();
+            }
+        });
+        
+        // ==================== 启动游戏 ====================
+        draw();
+    </script>
+</body>
+</html>
