@@ -1215,7 +1215,7 @@
                     block.x = Math.max(50, Math.min(CONFIG.CANVAS_WIDTH - 50, block.x));
                 }
                 
-                // 下落动画（带加速度）
+                // 下落动画（带加速度）- 从屏幕顶部完整下落
                 if (block.dropping) {
                     // 初始化下落速度
                     if (!block.currentSpeed) block.currentSpeed = CONFIG.DROP_SPEED;
@@ -1226,28 +1226,43 @@
                     // 移动积木
                     block.y += block.currentSpeed;
                     
-                    // 绘制下落轨迹（从积木到落点，更明显）
-                    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                    // 绘制下落轨迹（从积木顶部到落点，虚线）
+                    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
                     ctx.lineWidth = 3;
-                    ctx.setLineDash([6, 6]);
+                    ctx.setLineDash([8, 8]);
                     ctx.beginPath();
-                    ctx.moveTo(block.x, block.y + block.height);
+                    ctx.moveTo(block.x, CONFIG.SPAWN_Y);
                     ctx.lineTo(block.x, block.targetY + block.height);
                     ctx.stroke();
                     ctx.setLineDash([]);
                     
-                    // 绘制速度线（动感效果）
-                    for (let i = 1; i <= 3; i++) {
-                        const lineY = block.y + block.height - i * 15;
-                        if (lineY > CONFIG.SPAWN_Y) {
-                            ctx.strokeStyle = 'rgba(255,255,255,' + (0.3 - i * 0.08) + ')';
+                    // 绘制下落距离指示（半透明积木轮廓）
+                    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                    const dropStartY = CONFIG.SPAWN_Y;
+                    const dropEndY = block.targetY;
+                    const dropHeight = dropEndY - dropStartY + block.height;
+                    ctx.fillRect(block.x - block.width/2, dropStartY, block.width, dropHeight);
+                    
+                    // 绘制速度线（动感效果，越快越多线）
+                    const speedRatio = block.currentSpeed / CONFIG.MAX_DROP_SPEED;
+                    const lineCount = Math.floor(3 + speedRatio * 5);
+                    for (let i = 1; i <= lineCount; i++) {
+                        const lineY = block.y + block.height + i * 12;
+                        const alpha = 0.4 - (i * 0.06);
+                        if (lineY > block.y + block.height && lineY < block.targetY + block.height + 20) {
+                            ctx.strokeStyle = 'rgba(255,255,255,' + alpha + ')';
                             ctx.lineWidth = 2;
                             ctx.beginPath();
-                            ctx.moveTo(block.x - block.width/3, lineY);
-                            ctx.lineTo(block.x + block.width/3, lineY);
+                            ctx.moveTo(block.x - block.width/2 - 5, lineY);
+                            ctx.lineTo(block.x + block.width/2 + 5, lineY);
                             ctx.stroke();
                         }
                     }
+                    
+                    // 绘制积木阴影（积木越靠近落点，阴影越深）
+                    const shadowAlpha = Math.min(0.5, (block.y - CONFIG.SPAWN_Y) / (block.targetY - CONFIG.SPAWN_Y) * 0.5);
+                    ctx.fillStyle = 'rgba(0,0,0,' + shadowAlpha + ')';
+                    ctx.fillRect(block.x - block.width/2 + 5, block.targetY + block.height - 5, block.width, 8);
                     
                     // 检查是否落到目标位置
                     if (block.y >= block.targetY) {
