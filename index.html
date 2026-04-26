@@ -433,16 +433,17 @@
     <script>
         // ==================== 游戏配置 ====================
         const CONFIG = {
-            BLOCK_SIZE: 40,
+            BLOCK_SIZE: 28,  // 积木大小改小
             CANVAS_WIDTH: 400,
             CANVAS_HEIGHT: 600,
-            BASE_HEIGHT: 50,
+            BASE_HEIGHT: 40,
             DROP_SPEED: 3,
             MOVE_SPEED: 5,
             TILT_THRESHOLD: 15, // 倾斜阈值（度）
             PERFECT_THRESHOLD: 5, // 完美放置阈值（像素）
             EVENT_INTERVAL: 5, // 每N个积木触发一次事件
             EVENT_CHANCE: 0.3, // 事件触发概率
+            SPAWN_Y: 60,  // 积木生成位置（距顶部固定位置）
         };
         
         // ==================== 俄罗斯方块7种形状 ====================
@@ -726,8 +727,8 @@
         function spawnNextBlock() {
             game.currentBlock = game.nextBlock;
             game.currentBlock.x = game.baseX;
-            game.currentBlock.y = 50 - game.cameraY;
-            game.currentBlock.dropping = true;
+            game.currentBlock.y = CONFIG.SPAWN_Y;  // 固定在顶部位置
+            game.currentBlock.dropping = false;  // 默认不自动掉落，等待玩家投放
             game.currentBlock.placed = false;
             
             game.nextBlock = createBlock(getRandomBlockType(game.height));
@@ -898,7 +899,7 @@
         function drawNextBlock() {
             const container = document.getElementById('nextBlock');
             const block = game.nextBlock;
-            const cellSize = 15;
+            const cellSize = 12;  // 预览区积木大小
             
             let html = '<div style="display:grid;grid-template-columns:repeat(' + block.shape[0].length + ',' + cellSize + 'px);gap:1px;">';
             
@@ -950,12 +951,12 @@
             // 绘制基座
             drawBase();
             
-            // 绘制已放置的积木
+            // 绘制已放置的积木（跟随相机滚动）
             game.blocks.forEach(block => {
-                drawBlock(block);
+                drawBlock(block, false);
             });
             
-            // 绘制当前积木
+            // 绘制当前积木（固定位置，不跟随相机）
             if (game.currentBlock && game.state === 'playing') {
                 // 应用风力影响
                 if (game.windOffset !== 0) {
@@ -963,29 +964,16 @@
                     game.currentBlock.x = Math.max(50, Math.min(CONFIG.CANVAS_WIDTH - 50, game.currentBlock.x));
                 }
                 
-                // 更新掉落位置
-                if (game.currentBlock.dropping) {
-                    game.currentBlock.y += CONFIG.DROP_SPEED;
-                    const landingY = calculateLandingY();
-                    if (game.currentBlock.y >= landingY) {
-                        dropBlock();
-                    }
-                }
-                
-                if (game.currentBlock) {
-                    drawBlock(game.currentBlock);
-                }
+                drawBlock(game.currentBlock, true);
                 
                 // 绘制下落轨迹
-                if (game.currentBlock && game.currentBlock.dropping) {
-                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-                    ctx.setLineDash([5, 5]);
-                    ctx.beginPath();
-                    ctx.moveTo(game.currentBlock.x, game.currentBlock.y + game.currentBlock.height);
-                    ctx.lineTo(game.currentBlock.x, game.baseY - game.cameraY);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                }
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(game.currentBlock.x, game.currentBlock.y + game.currentBlock.height);
+                ctx.lineTo(game.currentBlock.x, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - game.cameraY);
+                ctx.stroke();
+                ctx.setLineDash([]);
             }
             
             ctx.restore();
@@ -1017,31 +1005,31 @@
             
             // 地面线
             ctx.fillStyle = '#228B22';
-            ctx.fillRect(0, game.baseY - game.cameraY + 20, CONFIG.CANVAS_WIDTH, CONFIG.BASE_HEIGHT);
+            ctx.fillRect(0, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - game.cameraY, CONFIG.CANVAS_WIDTH, CONFIG.BASE_HEIGHT);
             
             ctx.strokeStyle = '#006400';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(0, game.baseY - game.cameraY + 20);
-            ctx.lineTo(CONFIG.CANVAS_WIDTH, game.baseY - game.cameraY + 20);
+            ctx.moveTo(0, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - game.cameraY);
+            ctx.lineTo(CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - game.cameraY);
             ctx.stroke();
         }
         
         function drawBase() {
-            const x = game.baseX - 80;
-            const y = game.baseY - game.cameraY;
+            const x = game.baseX - 60;
+            const y = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - game.cameraY;
             
             // 基座
             ctx.fillStyle = '#8B4513';
-            ctx.fillRect(x, y, 160, CONFIG.BASE_HEIGHT);
+            ctx.fillRect(x, y, 120, CONFIG.BASE_HEIGHT);
             
             // 基座纹理
             ctx.strokeStyle = '#654321';
             ctx.lineWidth = 2;
             for (let i = 0; i < 4; i++) {
                 ctx.beginPath();
-                ctx.moveTo(x + i * 40, y);
-                ctx.lineTo(x + i * 40, y + CONFIG.BASE_HEIGHT);
+                ctx.moveTo(x + i * 30, y);
+                ctx.lineTo(x + i * 30, y + CONFIG.BASE_HEIGHT);
                 ctx.stroke();
             }
             
@@ -1050,9 +1038,10 @@
             ctx.fillRect(x, y, 160, 5);
         }
         
-        function drawBlock(block) {
+        function drawBlock(block, isCurrentBlock) {
             const x = block.x - block.width / 2;
-            const y = block.y;
+            // 当前控制的积木固定位置显示，已放置的积木跟随相机滚动
+            const y = isCurrentBlock ? CONFIG.SPAWN_Y : block.y - game.cameraY;
             const cellSize = CONFIG.BLOCK_SIZE;
             
             // 绘制每个单元格
