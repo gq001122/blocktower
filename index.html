@@ -776,9 +776,9 @@
         function spawnNextBlock() {
             game.currentBlock = game.nextBlock;
             game.currentBlock.x = game.baseX;
-            // 新积木固定在屏幕顶部位置（玩家眼前）
+            // 新积木固定在屏幕顶部，等待玩家投放
             game.currentBlock.y = CONFIG.SPAWN_Y;
-            game.currentBlock.dropping = true;  // 开始下落
+            game.currentBlock.dropping = false;  // 不自动下落，等待玩家
             game.currentBlock.placed = false;
             game.currentBlock.targetY = calculateLandingY();  // 计算目标位置
             
@@ -787,14 +787,24 @@
         }
         
         function dropBlock() {
-            if (!game.currentBlock || !game.currentBlock.dropping) return;
-            // 投放后积木开始自由下落，动画在draw中处理
+            if (!game.currentBlock || game.currentBlock.dropping || game.currentBlock.placed) return;
+            // 玩家投放，积木开始下落
+            game.currentBlock.dropping = true;
         }
         
         // 积木放置完成回调（由draw函数调用）
         function onBlockLanded() {
             const block = game.currentBlock;
             if (!block || block.placed) return;
+            
+            // 检查碰撞（防止重叠）
+            if (checkBlockCollision(block, block.y)) {
+                // 有碰撞，积木回到顶部
+                block.y = CONFIG.SPAWN_Y;
+                block.dropping = false;
+                showEventAlert('⚠️ 位置被占用！');
+                return;
+            }
             
             block.placed = true;
             block.dropping = false;
@@ -854,31 +864,39 @@
         
         function calculateLandingY() {
             const block = game.currentBlock;
+            
+            // 基座位置（积木只能落在基座上）
+            const baseY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
+            
+            // 检查精确碰撞
+            if (checkBlockCollision(block, baseY)) {
+                // 有碰撞，不允许放置
+                return -1;
+            }
+            
+            // 返回基座顶部位置
+            return baseY - block.height;
+        }
+        
+        // 检查积木是否与现有积木碰撞
+        function checkBlockCollision(block, targetY) {
+            const blockShape = block.shape;
             const blockWidth = block.width;
+            const blockHeight = block.height;
             const blockLeft = block.x - blockWidth / 2;
             const blockRight = block.x + blockWidth / 2;
             
-            // 找到积木可以落下的最高位置
-            let highestLandingY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT; // 默认在基座上
-            
             // 检查与每个已放置积木的碰撞
-            game.blocks.forEach(existingBlock => {
+            for (let existingBlock of game.blocks) {
                 const existLeft = existingBlock.x - existingBlock.width / 2;
                 const existRight = existingBlock.x + existingBlock.width / 2;
-                const existTopY = existingBlock.y + existingBlock.height; // 现有积木的底部Y
                 
                 // 检查水平重叠
                 if (blockRight > existLeft && blockLeft < existRight) {
-                    // 有重叠，新积木应该落在现有积木顶部
-                    // Y坐标越小表示位置越高
-                    if (existTopY < highestLandingY) {
-                        highestLandingY = existTopY;
-                    }
+                    return true; // 有碰撞，不允许
                 }
-            });
-            
-            // 返回新积木的顶部Y坐标
-            return highestLandingY - block.height;
+            }
+            return false; // 无碰撞
         }
         
         function calculateTowerTilt() {
