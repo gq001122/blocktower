@@ -878,50 +878,78 @@
             // 基座顶部Y坐标
             const baseTopY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
             
-            // 找到积木下方最高的支撑点
-            let supportY = baseTopY; // 默认支撑点在基座上
+            // ========== 俄罗斯方块式单元格对齐算法 ==========
+            // 积木按单元格对齐，每个单元格独立计算支撑点
+            const cellSize = CONFIG.BLOCK_SIZE;
             
-            // 遍历所有已放置的积木
-            for (let existingBlock of game.blocks) {
-                const existLeft = existingBlock.x - existingBlock.width / 2;
-                const existRight = existingBlock.x + existingBlock.width / 2;
-                
-                // 检查水平重叠
-                if (blockRight > existLeft && blockLeft < existRight) {
-                    // 新积木落在现有积木上方
-                    const newSupportY = existingBlock.y; // 现有积木的顶部
-                    if (newSupportY < supportY) {
-                        supportY = newSupportY;
+            // 找到积木每个单元格下方最高的支撑点
+            let highestSupportY = baseTopY; // 默认支撑点在基座上
+            
+            // 遍历积木的每个单元格
+            for (let rowIdx = 0; rowIdx < block.shape.length; rowIdx++) {
+                for (let colIdx = 0; colIdx < block.shape[rowIdx].length; colIdx++) {
+                    if (!block.shape[rowIdx][colIdx]) continue; // 跳过空格
+                    
+                    // 计算这个单元格中心的X坐标
+                    const cellCenterX = block.x + (colIdx - (block.shape[0].length - 1) / 2) * cellSize;
+                    
+                    // 找到这个单元格下方最近的支撑点
+                    let cellSupportY = baseTopY;
+                    
+                    for (let existingBlock of game.blocks) {
+                        const existLeft = existingBlock.x - existingBlock.width / 2;
+                        const existRight = existingBlock.x + existingBlock.width / 2;
+                        
+                        // 检查单元格是否在这个积木的水平范围内
+                        if (cellCenterX >= existLeft && cellCenterX < existRight) {
+                            // 这个单元格落在现有积木上方
+                            const existTopY = existingBlock.y + existingBlock.height;
+                            if (existTopY < cellSupportY) {
+                                cellSupportY = existTopY;
+                            }
+                        }
+                    }
+                    
+                    // 更新最高支撑点
+                    if (cellSupportY < highestSupportY) {
+                        highestSupportY = cellSupportY;
                     }
                 }
             }
             
-            // 返回新积木的顶部Y坐标
-            return supportY - block.height;
+            // 返回积木的顶部Y坐标（最高支撑点 - 积木高度）
+            return highestSupportY - block.height;
         }
         
-        // 检查积木是否与现有积木发生真正的重叠碰撞
+        // 检查积木是否与现有积木发生真正的重叠碰撞（基于单元格）
         function checkBlockCollision(block, blockY) {
-            const blockLeft = block.x - block.width / 2;
-            const blockRight = block.x + block.width / 2;
-            const blockTop = blockY;
-            const blockBottom = blockY + block.height;
+            const cellSize = CONFIG.BLOCK_SIZE;
             
-            for (let existingBlock of game.blocks) {
-                const existLeft = existingBlock.x - existingBlock.width / 2;
-                const existRight = existingBlock.x + existingBlock.width / 2;
-                const existTop = existingBlock.y;
-                const existBottom = existingBlock.y + existingBlock.height;
-                
-                // 检查水平重叠
-                if (blockRight > existLeft && blockLeft < existRight) {
-                    // 有水平重叠时，检查是否有垂直重叠（真正的碰撞）
-                    // 允许：blockBottom紧贴existTop（blockBottom == existTop）或在其上方
-                    // 允许：blockTop紧贴existBottom（blockTop == existBottom）或在其下方
-                    // 禁止：在中间重叠
-                    if (blockBottom > existTop && blockTop < existBottom) {
-                        // 有垂直重叠（不是紧贴），这是真正的碰撞
-                        return true;
+            // 遍历积木的每个单元格
+            for (let rowIdx = 0; rowIdx < block.shape.length; rowIdx++) {
+                for (let colIdx = 0; colIdx < block.shape[rowIdx].length; colIdx++) {
+                    if (!block.shape[rowIdx][colIdx]) continue;
+                    
+                    // 计算这个单元格的范围
+                    const cellLeftX = block.x + (colIdx - (block.shape[0].length - 1) / 2) * cellSize;
+                    const cellRightX = cellLeftX + cellSize;
+                    const cellTopY = blockY + rowIdx * cellSize;
+                    const cellBottomY = cellTopY + cellSize;
+                    
+                    // 检查是否与任何已放置积木重叠
+                    for (let existingBlock of game.blocks) {
+                        const existLeft = existingBlock.x - existingBlock.width / 2;
+                        const existRight = existingBlock.x + existingBlock.width / 2;
+                        const existTop = existingBlock.y;
+                        const existBottom = existingBlock.y + existingBlock.height;
+                        
+                        // 检查水平重叠
+                        if (cellRightX > existLeft && cellLeftX < existRight) {
+                            // 检查垂直重叠（如果有垂直重叠，说明单元格进入了已有积木内部）
+                            if (cellBottomY > existTop && cellTopY < existBottom) {
+                                return true; // 发生碰撞
+                            }
+                        }
                     }
                 }
             }
