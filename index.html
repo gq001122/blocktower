@@ -907,15 +907,13 @@
             // 保存分数
             const rank = saveScore(game.playerName, game.height, game.blockCount, game.elapsedTime);
             
-            // 显示结束界面
+            // 立即显示结束界面（不再延迟）
             document.getElementById('finalHeight').textContent = game.height;
             document.getElementById('finalBlocks').textContent = game.blockCount;
             document.getElementById('finalTime').textContent = formatTime(game.elapsedTime);
             document.getElementById('finalScore').textContent = game.height * 10 + game.blockCount * 5;
             
-            setTimeout(() => {
-                document.getElementById('gameOverScreen').style.display = 'flex';
-            }, 1000);
+            document.getElementById('gameOverScreen').style.display = 'flex';
         }
         
         function triggerRandomEvent() {
