@@ -866,10 +866,7 @@
         
         function calculateLandingY() {
             const block = game.currentBlock;
-            const blockLeft = block.x - block.width / 2;
-            const blockRight = block.x + block.width / 2;
-            
-            // 基座顶部Y坐标
+            const cellSize = CONFIG.BLOCK_SIZE;
             const baseTopY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
             
             // ========== 重心算法：找到所有单元格都有支撑且不重叠的最佳位置 ==========
