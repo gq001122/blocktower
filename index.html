@@ -921,8 +921,8 @@
                 for (let colIdx = 0; colIdx < block.shape[rowIdx].length; colIdx++) {
                     if (!block.shape[rowIdx][colIdx]) continue;
                     
-                    // 计算这个单元格的范围
-                    const cellLeftX = block.x + (colIdx - (block.shape[0].length - 1) / 2) * cellSize;
+                    // 计算这个单元格的范围（与calculateLandingY一致）
+                    const cellLeftX = block.x - block.width / 2 + colIdx * cellSize;
                     const cellRightX = cellLeftX + cellSize;
                     const cellTopY = blockY + rowIdx * cellSize;
                     const cellBottomY = cellTopY + cellSize;
