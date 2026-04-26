@@ -420,7 +420,7 @@
         </div>
         
         <!-- 操作提示 -->
-        <div id="controls">← → 移动积木 | 空格 投放</div>
+        <div id="controls">← → 移动 | ⬇️ 投放</div>
         
         <!-- 移动端控制 -->
         <div id="mobileControls">
@@ -1124,19 +1124,22 @@
         }
         
         // ==================== 控制输入 ====================
+        // 键盘控制
         document.addEventListener('keydown', (e) => {
             if (game.state !== 'playing' || !game.currentBlock) return;
             
             switch (e.key) {
                 case 'ArrowLeft':
+                    e.preventDefault();
                     game.currentBlock.x -= CONFIG.MOVE_SPEED;
                     game.currentBlock.x = Math.max(50, game.currentBlock.x);
                     break;
                 case 'ArrowRight':
+                    e.preventDefault();
                     game.currentBlock.x += CONFIG.MOVE_SPEED;
                     game.currentBlock.x = Math.min(CONFIG.CANVAS_WIDTH - 50, game.currentBlock.x);
                     break;
-                case ' ':
+                case 'ArrowDown':
                     e.preventDefault();
                     dropBlock();
                     break;
@@ -1197,32 +1200,38 @@
             }
         });
         
-        // 触摸滑动控制
+        // 触摸滑动控制（移动端主控制方式）
         let touchStartX = 0;
+        let isTouchMoving = false;
         
         canvas.addEventListener('touchstart', (e) => {
+            if (game.state !== 'playing') return;
             touchStartX = e.touches[0].clientX;
+            isTouchMoving = false;
         });
         
         canvas.addEventListener('touchmove', (e) => {
-            if (!game.currentBlock) return;
+            if (game.state !== 'playing' || !game.currentBlock) return;
+            e.preventDefault();
             
             const touchX = e.touches[0].clientX;
             const diff = touchX - touchStartX;
             
             if (Math.abs(diff) > 10) {
+                isTouchMoving = true;
                 game.currentBlock.x += diff > 0 ? CONFIG.MOVE_SPEED : -CONFIG.MOVE_SPEED;
                 game.currentBlock.x = Math.max(50, Math.min(CONFIG.CANVAS_WIDTH - 50, game.currentBlock.x));
                 touchStartX = touchX;
             }
         });
         
-        canvas.addEventListener('touchend', (e) => {
-            // 轻点投放
-            const touchDuration = e.timeStamp - (this.touchStartTime || 0);
-            if (touchDuration < 200 && game.currentBlock) {
+        canvas.addEventListener('touchend', () => {
+            if (game.state !== 'playing') return;
+            // 如果没有滑动，则投放积木
+            if (!isTouchMoving) {
                 dropBlock();
             }
+            isTouchMoving = false;
         });
         
         // ==================== 启动游戏 ====================
