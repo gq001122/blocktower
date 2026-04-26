@@ -815,16 +815,6 @@
             // 积木晃动动画
             triggerBlockShake();
             
-            // 检查平衡（碰撞后）
-            const tilt = calculateTowerTilt();
-            game.towerTilt = tilt;
-            
-            if (Math.abs(tilt) > CONFIG.TILT_THRESHOLD) {
-                // 塔倒塌
-                towerCollapse();
-                return;
-            }
-            
             // 更新相机
             game.targetCameraY = Math.max(0, (game.height - 8) * CONFIG.BLOCK_SIZE);
             
