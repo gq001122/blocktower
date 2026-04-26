@@ -446,8 +446,9 @@
             SPAWN_Y: 60,  // 积木生成位置（距顶部固定位置）
         };
         
-        // ==================== 俄罗斯方块7种形状 ====================
+        // ==================== 积木形状（俄罗斯方块 + 更多）====================
         const TETROMINO_SHAPES = {
+            // 俄罗斯方块经典7种
             I: {
                 shape: [[1,1,1,1]],
                 color: '#00CED1', // 青色
@@ -489,6 +490,49 @@
                 color: '#FF8C00', // 橙色
                 name: 'L形',
                 difficulty: 3
+            },
+            // 新增形状
+            DOT: {
+                shape: [[1]],
+                color: '#FF69B4', // 粉色
+                name: '小方块',
+                difficulty: 1
+            },
+            H2: {
+                shape: [[1,1]],
+                color: '#20B2AA', // 浅蓝绿
+                name: '短横',
+                difficulty: 1
+            },
+            H3: {
+                shape: [[1,1,1]],
+                color: '#87CEEB', // 天蓝
+                name: '长I',
+                difficulty: 2
+            },
+            PLUS: {
+                shape: [[0,1,0],[1,1,1],[0,1,0]],
+                color: '#FF1493', // 深粉
+                name: '十字',
+                difficulty: 3
+            },
+            BIG: {
+                shape: [[1,1],[1,1],[1,1]],
+                color: '#DAA520', // 金色
+                name: '大方块',
+                difficulty: 1
+            },
+            SMALLL: {
+                shape: [[1,0],[1,1]],
+                color: '#FF6347', // 番茄红
+                name: '小L',
+                difficulty: 2
+            },
+            DIAMOND: {
+                shape: [[0,1,0],[1,1,1],[0,1,0],[1,1,1]],
+                color: '#9370DB', // 紫色
+                name: '菱形',
+                difficulty: 4
             }
         };
         
@@ -645,18 +689,19 @@
         }
         
         function getRandomBlockType(height) {
-            const types = Object.keys(TETROMINO_SHAPES);
+            // 根据高度逐步解锁所有形状
+            const easy = ['I', 'O', 'DOT', 'H2', 'BIG'];
+            const medium = ['T', 'S', 'Z', 'H3', 'SMALLL'];
+            const hard = ['J', 'L', 'PLUS'];
+            const expert = ['DIAMOND'];
             
-            // 根据高度限制可用形状
-            if (height < 10) {
-                return Math.random() > 0.5 ? 'I' : 'O';
-            } else if (height < 20) {
-                return ['I', 'O', 'T'][Math.floor(Math.random() * 3)];
-            } else if (height < 30) {
-                return ['I', 'O', 'T', 'S', 'Z'][Math.floor(Math.random() * 5)];
-            } else {
-                return types[Math.floor(Math.random() * types.length)];
-            }
+            let pool = easy;
+            
+            if (height >= 10) pool = pool.concat(medium);
+            if (height >= 25) pool = pool.concat(hard);
+            if (height >= 40) pool = pool.concat(expert);
+            
+            return pool[Math.floor(Math.random() * pool.length)];
         }
         
         function createBlock(type) {
@@ -729,8 +774,11 @@
         function spawnNextBlock() {
             game.currentBlock = game.nextBlock;
             game.currentBlock.x = game.baseX;
-            game.currentBlock.y = CONFIG.SPAWN_Y;  // 固定在顶部位置
-            game.currentBlock.dropping = false;  // 默认不自动掉落，等待玩家投放
+            // 新积木显示在塔顶上方一个积木高度的位置
+            const towerTop = game.blocks.length === 0 ? game.baseY : 
+                Math.min(...game.blocks.map(b => b.y));
+            game.currentBlock.y = towerTop - CONFIG.BLOCK_SIZE * 1.5;
+            game.currentBlock.dropping = false;
             game.currentBlock.placed = false;
             
             game.nextBlock = createBlock(getRandomBlockType(game.height));
@@ -756,10 +804,26 @@
                 return;
             }
             
+            // 碰撞影响：积木落下会对下方积木产生冲击
+            applyCollisionEffect(game.currentBlock);
+            
             // 成功放置
             game.blocks.push(game.currentBlock);
             game.blockCount++;
             game.height++;
+            
+            // 积木晃动动画
+            triggerBlockShake();
+            
+            // 检查平衡（碰撞后）
+            const tilt = calculateTowerTilt();
+            game.towerTilt = tilt;
+            
+            if (Math.abs(tilt) > CONFIG.TILT_THRESHOLD) {
+                // 塔倒塌
+                towerCollapse();
+                return;
+            }
             
             // 更新相机
             game.targetCameraY = Math.max(0, (game.height - 8) * CONFIG.BLOCK_SIZE);
@@ -878,6 +942,67 @@
             }, event.duration);
         }
         
+        // ==================== 碰撞物理效果 ====================
+        let blockShake = { active: false, time: 0 };
+        
+        // 计算碰撞影响
+        function applyCollisionEffect(newBlock) {
+            if (game.blocks.length === 0) return;
+            
+            const impactX = newBlock.x;
+            const impactY = newBlock.y;
+            
+            // 计算积木的重量（基于面积）
+            const blockWeight = newBlock.shape.flat().reduce((a, b) => a + b, 0);
+            
+            // 对每个已存在的积木计算碰撞影响
+            game.blocks.forEach(block => {
+                const dx = impactX - block.x;
+                const dy = impactY - block.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // 只影响落点附近的积木
+                if (distance < 150) {
+                    // 冲击力：重量越大、距离越近，影响越大
+                    const force = (blockWeight / 4) * (1 - distance / 150) * 5;
+                    
+                    // 水平位移（向落点反方向推开）
+                    block.x += Math.sign(dx) * force * 0.3;
+                    
+                    // 垂直位移（上方积木被震高）
+                    if (block.y < impactY) {
+                        block.y -= force * 0.5;
+                    }
+                    
+                    // 限制位移范围
+                    block.x = Math.max(30, Math.min(CONFIG.CANVAS_WIDTH - 30, block.x));
+                }
+            });
+        }
+        
+        // 积木晃动动画
+        function triggerBlockShake() {
+            blockShake = { active: true, time: 15 };
+        }
+        
+        // 更新晃动状态
+        function updateBlockShake() {
+            if (blockShake.active && blockShake.time > 0) {
+                blockShake.time--;
+                
+                // 给积木添加微小随机偏移
+                game.blocks.forEach(block => {
+                    if (block.shakeOffset === undefined) block.shakeOffset = 0;
+                    block.shakeOffset = (Math.random() - 0.5) * blockShake.time * 0.3;
+                });
+            } else {
+                blockShake.active = false;
+                game.blocks.forEach(block => {
+                    block.shakeOffset = 0;
+                });
+            }
+        }
+        
         function showEventAlert(text) {
             const alert = document.getElementById('eventAlert');
             alert.textContent = text;
@@ -925,6 +1050,9 @@
             // 更新相机
             game.cameraY += (game.targetCameraY - game.cameraY) * 0.1;
             
+            // 更新积木碰撞晃动
+            updateBlockShake();
+            
             // 更新时间和应用效果
             if (game.state === 'playing') {
                 game.elapsedTime = Math.floor((Date.now() - game.startTime) / 1000);
@@ -957,7 +1085,7 @@
                 drawBlock(block, false);
             });
             
-            // 绘制当前积木（固定位置，不跟随相机）
+            // 绘制当前积木（跟随相机，显示在塔顶上方）
             if (game.currentBlock && game.state === 'playing') {
                 // 应用风力影响
                 if (game.windOffset !== 0) {
@@ -967,12 +1095,12 @@
                 
                 drawBlock(game.currentBlock, true);
                 
-                // 绘制下落轨迹
+                // 绘制下落轨迹（从当前积木到底部）
                 ctx.strokeStyle = 'rgba(255,255,255,0.3)';
                 ctx.setLineDash([5, 5]);
                 ctx.beginPath();
-                ctx.moveTo(game.currentBlock.x, game.currentBlock.y + game.currentBlock.height);
-                ctx.lineTo(game.currentBlock.x, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - game.cameraY);
+                ctx.moveTo(game.currentBlock.x, game.currentBlock.y);
+                ctx.lineTo(game.currentBlock.x, CONFIG.CANVAS_HEIGHT);
                 ctx.stroke();
                 ctx.setLineDash([]);
             }
@@ -1045,11 +1173,14 @@
             const y = isCurrentBlock ? CONFIG.SPAWN_Y : block.y - game.cameraY;
             const cellSize = CONFIG.BLOCK_SIZE;
             
+            // 应用碰撞晃动效果
+            const shakeOffsetX = block.shakeOffset || 0;
+            
             // 绘制每个单元格
             block.shape.forEach((row, rowIndex) => {
                 row.forEach((cell, colIndex) => {
                     if (cell) {
-                        const cx = x + colIndex * cellSize;
+                        const cx = x + colIndex * cellSize + shakeOffsetX;
                         const cy = y + rowIndex * cellSize;
                         
                         // 像素风格积木
