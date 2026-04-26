@@ -738,6 +738,14 @@
         
         // ==================== 游戏逻辑 ====================
         function startGame() {
+            // 隐藏所有浮层
+            const startScreen = document.getElementById('startScreen');
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const leaderboardScreen = document.getElementById('leaderboardScreen');
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            leaderboardScreen.style.display = 'none';
+            
             const nameInput = document.getElementById('playerNameInput');
             game.playerName = nameInput.value.trim() || '匿名玩家';
             
@@ -768,9 +776,6 @@
             // 创建初始积木
             game.nextBlock = createBlock(getRandomBlockType(0));
             spawnNextBlock();
-            
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('gameOverScreen').style.display = 'none';
             
             updateUI();
         }
