@@ -1355,6 +1355,13 @@
                         // 像素点装饰
                         ctx.fillStyle = shadeColor(block.color, 20);
                         ctx.fillRect(cx + cellSize - 8, cy + cellSize - 8, 4, 4);
+                        
+                        // 调试：绘制单元格边界（红色虚线）
+                        ctx.strokeStyle = 'rgba(255,0,0,0.5)';
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([2, 2]);
+                        ctx.strokeRect(cx, cy, cellSize, cellSize);
+                        ctx.setLineDash([]);
                     }
                 });
             });
