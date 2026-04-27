@@ -403,21 +403,22 @@
             let landingY = 0;
             
             while (landingY < baseTop) {
-                // 检查是否碰到其他积木
+                // 检查是否碰到其他积木（碰撞的是下一个位置）
+                let hitBlock = false;
                 for (let existing of game.blocks) {
                     const blockLeft = x - block.width / 2;
                     const blockRight = x + block.width / 2;
                     const blockBottom = landingY + block.height;
-                    const blockTop = landingY;
                     
                     const existLeft = existing.x - existing.width / 2;
                     const existRight = existing.x + existing.width / 2;
-                    const existTop = existing.y;
-                    const existBottom = existing.y + existing.height;
                     
-                    if (blockRight > existLeft && blockLeft < existRight &&
-                        blockBottom > existTop && blockTop < existBottom) {
-                        return existTop - block.height;
+                    // 水平重叠
+                    if (blockRight > existLeft && blockLeft < existRight) {
+                        // 积木底部碰到已有积木顶部
+                        if (Math.abs(blockBottom - existing.y) < 5) {
+                            return existing.y - block.height;
+                        }
                     }
                 }
                 
@@ -479,13 +480,13 @@
             game.blocks.push(block);
             game.height++;
             
-            // 更新相机 - 保持塔在屏幕下方
-            if (game.blocks.length === 1) {
-                // 第一块积木，直接设为0
-                game.targetCameraY = 0;
+            // 更新相机 - 只有当塔超出屏幕时才移动
+            const towerTop = getTowerTop();
+            const screenHeight = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - CONFIG.VIEW_TOP;
+            if (towerTop < screenHeight) {
+                game.targetCameraY = 0;  // 塔还在屏幕内，不移动相机
             } else {
-                const towerTop = getTowerTop();
-                game.targetCameraY = Math.max(0, towerTop - CONFIG.VIEW_TOP);
+                game.targetCameraY = towerTop - screenHeight;  // 塔太高了，向上移动相机
             }
             
             updateUI();
