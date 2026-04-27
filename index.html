@@ -399,12 +399,8 @@
             
             // 逐步向下扫描找落点
             while (landingY < baseTop) {
-                // 检查当前Y位置是否碰撞
-                if (landingY + block.height >= baseTop) {
-                    return baseTop - block.height;
-                }
-                
-                // 检查是否碰到其他积木
+                // 检查是否碰到其他积木（优先检测）
+                let hitBlock = false;
                 for (let existing of game.blocks) {
                     const blockLeft = x - block.width / 2;
                     const blockRight = x + block.width / 2;
@@ -420,6 +416,11 @@
                         blockBottom > existTop && blockTop < existBottom) {
                         return existTop - block.height;
                     }
+                }
+                
+                // 检查是否碰到地基（最后检测）
+                if (landingY + block.height >= baseTop) {
+                    return baseTop - block.height;
                 }
                 
                 landingY += 5; // 步进
