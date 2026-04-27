@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>谁是最高的积木塔1？</title>
+    <title>精准堆叠挑战</title>
     <style>
         * {
             margin: 0;
@@ -41,10 +41,11 @@
             transform: translateX(-50%);
             display: flex;
             align-items: center;
-            gap: 30px;
+            gap: 20px;
             padding: 10px 20px;
             background: rgba(0,0,0,0.7);
             border: 3px solid #0f3460;
+            border-radius: 8px;
             color: #fff;
             font-size: 14px;
             z-index: 10;
@@ -57,34 +58,20 @@
         }
         
         #topBar .stat span {
-            color: #e94560;
+            color: #ffd93d;
             font-weight: bold;
         }
         
-        #leaderboardBtn {
-            background: #e94560;
-            border: none;
-            color: #fff;
-            padding: 8px 15px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 12px;
-            border-radius: 3px;
-        }
-        
-        #leaderboardBtn:hover {
-            background: #ff6b6b;
-        }
-        
-        /* 左侧面板 */
+        /* 左侧面板 - 偏移指示器 */
         #leftPanel {
             position: absolute;
             left: 10px;
             top: 70px;
-            width: 120px;
-            padding: 10px;
-            background: rgba(0,0,0,0.7);
+            width: 140px;
+            padding: 15px;
+            background: rgba(0,0,0,0.8);
             border: 3px solid #0f3460;
+            border-radius: 8px;
             color: #fff;
             font-size: 12px;
             z-index: 10;
@@ -92,17 +79,71 @@
         
         #leftPanel h3 {
             color: #e94560;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             font-size: 14px;
             text-align: center;
         }
         
-        #leftPanel .record {
-            margin: 5px 0;
+        /* 偏移仪表盘 */
+        #offsetMeter {
+            width: 100px;
+            height: 20px;
+            background: #333;
+            border: 2px solid #555;
+            border-radius: 10px;
+            margin: 10px auto;
+            position: relative;
+            overflow: hidden;
         }
         
-        #leftPanel .record span {
-            color: #4ecca3;
+        #offsetIndicator {
+            position: absolute;
+            width: 8px;
+            height: 100%;
+            background: #4ecca3;
+            border-radius: 50%;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: left 0.1s, background 0.2s;
+        }
+        
+        #offsetMeter::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #fff;
+            transform: translateX(-50%);
+        }
+        
+        #offsetValue {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        
+        /* 稳定性指示 */
+        #stabilityMeter {
+            margin-top: 15px;
+        }
+        
+        #stabilityBar {
+            width: 100%;
+            height: 12px;
+            background: #333;
+            border: 2px solid #555;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        #stabilityFill {
+            height: 100%;
+            background: linear-gradient(90deg, #e94560, #ffd93d, #4ecca3);
+            transition: width 0.3s;
         }
         
         /* 右侧面板 */
@@ -111,9 +152,10 @@
             right: 10px;
             top: 70px;
             width: 120px;
-            padding: 10px;
-            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            background: rgba(0,0,0,0.8);
             border: 3px solid #0f3460;
+            border-radius: 8px;
             color: #fff;
             font-size: 12px;
             z-index: 10;
@@ -131,6 +173,7 @@
             height: 80px;
             margin: 10px auto;
             border: 2px dashed #0f3460;
+            border-radius: 8px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -143,26 +186,25 @@
             font-weight: bold;
         }
         
-        /* 事件提示 */
-        #eventAlert {
+        /* 完美提示 */
+        #perfectAlert {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            padding: 15px 30px;
-            background: rgba(233,69,96,0.9);
-            color: #fff;
-            font-size: 24px;
+            font-size: 32px;
             font-weight: bold;
-            border-radius: 5px;
+            color: #ffd93d;
+            text-shadow: 0 0 20px #ffd93d, 0 0 40px #ff8c00;
             display: none;
             z-index: 20;
-            animation: pulse 0.5s infinite;
+            animation: perfectPop 0.8s ease-out;
         }
         
-        @keyframes pulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.1); }
+        @keyframes perfectPop {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            30% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
         }
         
         /* 开始界面 */
@@ -182,13 +224,22 @@
         
         #startScreen h1, #gameOverScreen h1, #leaderboardScreen h1 {
             color: #e94560;
-            font-size: 36px;
-            margin-bottom: 30px;
+            font-size: 32px;
+            margin-bottom: 20px;
             text-shadow: 3px 3px 0 #000;
         }
         
+        #startScreen p {
+            color: #aaa;
+            font-size: 14px;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 300px;
+            line-height: 1.6;
+        }
+        
         .menuBtn {
-            background: #e94560;
+            background: linear-gradient(135deg, #e94560, #ff6b6b);
             border: none;
             color: #fff;
             padding: 15px 40px;
@@ -196,24 +247,26 @@
             font-size: 18px;
             cursor: pointer;
             font-family: inherit;
-            border-radius: 5px;
-            transition: transform 0.2s;
+            border-radius: 25px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(233,69,96,0.4);
         }
         
         .menuBtn:hover {
             transform: scale(1.05);
-            background: #ff6b6b;
+            box-shadow: 0 6px 20px rgba(233,69,96,0.6);
         }
         
         #playerNameInput {
-            padding: 10px 20px;
+            padding: 12px 24px;
             font-size: 16px;
             font-family: inherit;
             border: 3px solid #0f3460;
+            border-radius: 25px;
             background: #16213e;
             color: #fff;
             margin: 10px;
-            width: 200px;
+            width: 220px;
             text-align: center;
         }
         
@@ -230,12 +283,18 @@
         }
         
         #gameOverScreen .stats div {
-            margin: 10px 0;
+            margin: 12px 0;
         }
         
         #gameOverScreen .stats span {
             color: #4ecca3;
             font-weight: bold;
+        }
+        
+        /* 完美分数高亮 */
+        #gameOverScreen .stats .perfect-score span {
+            color: #ffd93d;
+            font-size: 24px;
         }
         
         /* 排行榜 */
@@ -250,16 +309,18 @@
             overflow-y: auto;
             background: rgba(0,0,0,0.5);
             border: 3px solid #0f3460;
+            border-radius: 10px;
             padding: 10px;
         }
         
         .rankItem {
             display: flex;
             justify-content: space-between;
-            padding: 8px;
+            padding: 10px;
             border-bottom: 1px solid #0f3460;
             color: #fff;
             font-size: 12px;
+            border-radius: 5px;
         }
         
         .rankItem:nth-child(1) { background: rgba(255,215,0,0.3); }
@@ -271,32 +332,12 @@
             border: 2px solid #e94560;
         }
         
-        .rankNum {
-            width: 30px;
-            color: #ffd93d;
-            font-weight: bold;
-        }
+        .rankNum { width: 30px; color: #ffd93d; font-weight: bold; }
+        .rankName { flex: 1; margin-left: 10px; }
+        .rankHeight { width: 60px; text-align: right; color: #4ecca3; }
+        .rankScore { width: 60px; text-align: right; color: #ffd93d; }
         
-        .rankName {
-            flex: 1;
-            margin-left: 10px;
-        }
-        
-        .rankHeight {
-            width: 60px;
-            text-align: right;
-            color: #4ecca3;
-        }
-        
-        .rankTime {
-            width: 50px;
-            text-align: right;
-            color: #888;
-        }
-        
-        #closeLeaderboard {
-            margin-top: 20px;
-        }
+        #closeLeaderboard { margin-top: 20px; }
         
         /* 操作提示 */
         #controls {
@@ -307,6 +348,9 @@
             color: #666;
             font-size: 12px;
             z-index: 10;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 15px;
         }
         
         /* 移动端控制 */
@@ -317,14 +361,14 @@
             width: 100%;
             display: none;
             justify-content: center;
-            gap: 50px;
+            gap: 40px;
             z-index: 10;
         }
         
         .mobileBtn {
-            width: 70px;
-            height: 70px;
-            background: rgba(233,69,96,0.8);
+            width: 65px;
+            height: 65px;
+            background: linear-gradient(135deg, #e94560, #ff6b6b);
             border: 3px solid #fff;
             border-radius: 50%;
             color: #fff;
@@ -334,30 +378,26 @@
             align-items: center;
             cursor: pointer;
             user-select: none;
+            box-shadow: 0 4px 15px rgba(233,69,96,0.4);
         }
         
         .mobileBtn:active {
-            background: #e94560;
-            transform: scale(0.95);
+            transform: scale(0.9);
+            box-shadow: 0 2px 10px rgba(233,69,96,0.6);
         }
         
         #dropBtn {
-            width: 90px;
-            height: 90px;
+            width: 80px;
+            height: 80px;
             font-size: 14px;
+            font-weight: bold;
         }
         
         @media (max-width: 768px) {
-            #mobileControls {
-                display: flex;
-            }
-            #controls {
-                display: none;
-            }
-            #leftPanel, #rightPanel {
-                width: 80px;
-                font-size: 10px;
-            }
+            #mobileControls { display: flex; }
+            #controls { display: none; }
+            #leftPanel, #rightPanel { width: 90px; font-size: 10px; padding: 10px; }
+            #offsetMeter { width: 60px; }
         }
     </style>
 </head>
@@ -367,18 +407,25 @@
         
         <!-- 顶部信息栏 -->
         <div id="topBar">
-            <div class="stat">🏗️ 高度: <span id="heightDisplay">0</span>层</div>
-            <div class="stat">🧱 积木: <span id="blockCount">0</span>个</div>
+            <div class="stat">🏗️ <span id="heightDisplay">0</span>层</div>
+            <div class="stat">⭐ <span id="scoreDisplay">0</span>分</div>
             <div class="stat">⏱️ <span id="timeDisplay">00:00</span></div>
-            <button id="leaderboardBtn">🏆 排行榜</button>
         </div>
         
-        <!-- 左侧面板 -->
+        <!-- 左侧面板 - 偏移与稳定性 -->
         <div id="leftPanel">
-            <h3>📊 历史记录</h3>
-            <div class="record">最高: <span id="bestHeight">0</span>层</div>
-            <div class="record">最佳用时: <span id="bestTime">--:--</span></div>
-            <div class="record">总积木: <span id="totalBlocks">0</span></div>
+            <h3>📊 偏移量</h3>
+            <div id="offsetMeter">
+                <div id="offsetIndicator"></div>
+            </div>
+            <div id="offsetValue">0 px</div>
+            
+            <div id="stabilityMeter">
+                <h3 style="margin-top:10px;">🏛️ 稳定性</h3>
+                <div id="stabilityBar">
+                    <div id="stabilityFill" style="width: 100%;"></div>
+                </div>
+            </div>
         </div>
         
         <!-- 右侧面板 -->
@@ -388,12 +435,13 @@
             <div id="comboCount">🔥 0连击</div>
         </div>
         
-        <!-- 事件提示 -->
-        <div id="eventAlert"></div>
+        <!-- 完美提示 -->
+        <div id="perfectAlert">✨ PERFECT! ✨</div>
         
         <!-- 开始界面 -->
         <div id="startScreen">
-            <h1>🏗️ 谁是最高的积木塔1？</h1>
+            <h1>🎯 精准堆叠挑战</h1>
+            <p>控制积木左右移动<br>完美中心放置获得额外加分<br>偏离越大塔越晃！</p>
             <input type="text" id="playerNameInput" placeholder="输入你的名字" maxlength="10">
             <button class="menuBtn" id="startBtn">▶️ 开始游戏</button>
             <button class="menuBtn" id="rankBtn">🏆 排行榜</button>
@@ -403,30 +451,29 @@
         <div id="gameOverScreen">
             <h1>💥 塔倒了！</h1>
             <div class="stats">
-                <div>🏗️ 最终高度: <span id="finalHeight">0</span>层</div>
-                <div>🧱 使用积木: <span id="finalBlocks">0</span>个</div>
+                <div>🏗️ 高度: <span id="finalHeight">0</span>层</div>
+                <div>⭐ 总分: <span id="finalScore">0</span></div>
+                <div>✨ 完美: <span id="perfectCount">0</span>次</div>
                 <div>⏱️ 用时: <span id="finalTime">00:00</span></div>
-                <div>⭐ 得分: <span id="finalScore">0</span></div>
             </div>
             <button class="menuBtn" id="restartBtn">🔄 再来一局</button>
-            <button class="menuBtn" id="viewRankBtn">🏆 查看排行榜</button>
+            <button class="menuBtn" id="viewRankBtn">🏆 排行榜</button>
         </div>
         
         <!-- 排行榜界面 -->
         <div id="leaderboardScreen">
-            <h1>🏆 全球排行榜</h1>
+            <h1>🏆 排行榜</h1>
             <div id="leaderboardList"></div>
             <button class="menuBtn" id="closeLeaderboard">← 返回</button>
         </div>
         
         <!-- 操作提示 -->
-        <div id="controls">← → 移动 | ⬇️ 投放</div>
+        <div id="controls">← → 微调位置 | 空格 投放</div>
         
         <!-- 移动端控制 -->
         <div id="mobileControls">
             <div class="mobileBtn" id="leftBtn">◀</div>
-            <div class="mobileBtn" id="rotateBtn">🔄</div>
-            <div class="mobileBtn" id="dropBtn">⬇️</div>
+            <div class="mobileBtn" id="dropBtn">⬇️<br>投放</div>
             <div class="mobileBtn" id="rightBtn">▶</div>
         </div>
     </div>
@@ -434,163 +481,55 @@
     <script>
         // ==================== 游戏配置 ====================
         const CONFIG = {
-            BLOCK_SIZE: 28,  // 积木大小
+            BLOCK_SIZE: 30,       // 积木大小
             CANVAS_WIDTH: 400,
             CANVAS_HEIGHT: 600,
-            BASE_HEIGHT: 40,
-            DROP_SPEED: 3,  // 初始下落速度
-            DROP_ACCELERATION: 0.12,  // 下落加速度
-            MAX_DROP_SPEED: 8,  // 最大下落速度
-            MOVE_SPEED: 6,  // 移动速度
-            TILT_THRESHOLD: 20, // 倾斜阈值（度）
-            PERFECT_THRESHOLD: 8, // 完美放置阈值（像素）
-            EVENT_INTERVAL: 5, // 每N个积木触发一次事件
-            EVENT_CHANCE: 0.3, // 事件触发概率
-            SPAWN_Y: 50,  // 积木固定显示位置（屏幕最顶部）
-            VIEW_SPACE: 8,  // 屏幕中间到顶部保留8格下落空间
-            COLLISION_FORCE: 2.5,  // 碰撞力度
+            BASE_HEIGHT: 40,       // 地基高度
+            SPAWN_Y: 60,           // 积木出生位置
+            DROP_SPEED: 4,         // 下落速度
+            MOVE_SPEED: 4,         // 左右微调速度
+            MAX_OFFSET: 120,       // 最大偏移距离
+            PERFECT_THRESHOLD: 6,  // 完美放置阈值（像素）
+            GOOD_THRESHOLD: 20,    // 良好放置阈值
+            STABILITY_DECAY: 0.92, // 稳定性衰减系数
+            TILT_THRESHOLD: 35,    // 塔倒塌的倾斜角度
+            VIEW_SPACE: 6,         // 屏幕上方的积木空间
         };
         
-        // ==================== 积木形状（俄罗斯方块 + 更多）====================
-        const TETROMINO_SHAPES = {
-            // 俄罗斯方块经典7种
-            I: {
-                shape: [[1,1,1,1]],
-                color: '#00CED1', // 青色
-                name: 'I形',
-                difficulty: 1
-            },
-            O: {
-                shape: [[1,1],[1,1]],
-                color: '#FFD700', // 黄色
-                name: 'O形',
-                difficulty: 1
-            },
-            T: {
-                shape: [[0,1,0],[1,1,1]],
-                color: '#9932CC', // 紫色
-                name: 'T形',
-                difficulty: 2
-            },
-            S: {
-                shape: [[0,1,1],[1,1,0]],
-                color: '#32CD32', // 绿色
-                name: 'S形',
-                difficulty: 2
-            },
-            Z: {
-                shape: [[1,1,0],[0,1,1]],
-                color: '#FF4500', // 红色
-                name: 'Z形',
-                difficulty: 2
-            },
-            J: {
-                shape: [[1,0,0],[1,1,1]],
-                color: '#4169E1', // 蓝色
-                name: 'J形',
-                difficulty: 3
-            },
-            L: {
-                shape: [[0,0,1],[1,1,1]],
-                color: '#FF8C00', // 橙色
-                name: 'L形',
-                difficulty: 3
-            },
-            // 新增形状
-            DOT: {
-                shape: [[1]],
-                color: '#FF69B4', // 粉色
-                name: '小方块',
-                difficulty: 1
-            },
-            H2: {
-                shape: [[1,1]],
-                color: '#20B2AA', // 浅蓝绿
-                name: '短横',
-                difficulty: 1
-            },
-            H3: {
-                shape: [[1,1,1]],
-                color: '#87CEEB', // 天蓝
-                name: '长I',
-                difficulty: 2
-            },
-            PLUS: {
-                shape: [[0,1,0],[1,1,1],[0,1,0]],
-                color: '#FF1493', // 深粉
-                name: '十字',
-                difficulty: 3
-            },
-            BIG: {
-                shape: [[1,1],[1,1],[1,1]],
-                color: '#DAA520', // 金色
-                name: '大方块',
-                difficulty: 1
-            },
-            SMALLL: {
-                shape: [[1,0],[1,1]],
-                color: '#FF6347', // 番茄红
-                name: '小L',
-                difficulty: 2
-            },
-            DIAMOND: {
-                shape: [[0,1,0],[1,1,1],[0,1,0],[1,1,1]],
-                color: '#9370DB', // 紫色
-                name: '菱形',
-                difficulty: 4
-            }
-        };
-        
-        // ==================== 背景主题 ====================
-        const BACKGROUNDS = [
-            { height: 0, theme: 'grass', bgColor: '#87CEEB', elements: ['🌱','🌸','🌿'] },
-            { height: 10, theme: 'town', bgColor: '#B0C4DE', elements: ['🏠','🌳','🚗'] },
-            { height: 20, theme: 'city', bgColor: '#708090', elements: ['🏢','🏬','🏗️'] },
-            { height: 30, theme: 'mountain', bgColor: '#DEB887', elements: ['⛰️','🦅','🌲'] },
-            { height: 40, theme: 'cloud', bgColor: '#E6E6FA', elements: ['☁️','🎈','🪁'] },
-            { height: 50, theme: 'night', bgColor: '#191970', elements: ['🌙','⭐','✨'] },
-            { height: 60, theme: 'space', bgColor: '#000033', elements: ['🪐','🌟','🚀'] },
-            { height: 80, theme: 'deep', bgColor: '#0a0a1a', elements: ['💫','🔮','⚫'] }
-        ];
-        
-        // ==================== 随机事件 ====================
-        const EVENTS = [
-            { name: '🌬️ 微风', effect: 'wind_light', duration: 3000, intensity: 3 },
-            { name: '💨 强风', effect: 'wind_strong', duration: 5000, intensity: 10 },
-            { name: '🐦 小鸟', effect: 'bird', duration: 2000, intensity: 2 },
-            { name: '✈️ 客机', effect: 'plane', duration: 4000, intensity: 5 },
-            { name: '🚀 飞船', effect: 'ufo', duration: 6000, intensity: 8 },
-            { name: '🦸 超人', effect: 'superman', duration: 1500, intensity: 20 },
-            { name: '⚡ 闪电', effect: 'lightning', duration: 3000, intensity: 12 },
-            { name: '🌧️ 暴风雨', effect: 'storm', duration: 8000, intensity: 15 }
+        // ==================== 积木类型 ====================
+        const BLOCK_TYPES = [
+            { shape: [[1,1,1,1]], color: '#00CED1', name: '横条', size: 4 },
+            { shape: [[1,1],[1,1]], color: '#FFD700', name: '方块', size: 4 },
+            { shape: [[1,1,1]], color: '#87CEEB', name: '短横', size: 3 },
+            { shape: [[1,1]], color: '#20B2AA', name: '小横', size: 2 },
+            { shape: [[1],[1],[1],[1]], color: '#9370DB', name: '竖条', size: 4 },
+            { shape: [[1],[1],[1]], color: '#DDA0DD', name: '短竖', size: 3 },
+            { shape: [[1]], color: '#FF69B4', name: '单格', size: 1 },
+            { shape: [[1,1,1,1,1]], color: '#FF8C00', name: '特长横', size: 5 },
+            { shape: [[1],[1],[1],[1],[1]], color: '#98FB98', name: '特长竖', size: 5 },
         ];
         
         // ==================== 游戏状态 ====================
         let game = {
-            state: 'start', // start, playing, gameover
+            state: 'start',
             playerName: '玩家',
             uid: '',
             height: 0,
-            blockCount: 0,
+            score: 0,
+            perfectCount: 0,
+            combo: 0,
             startTime: 0,
             elapsedTime: 0,
-            combo: 0,
-            bestHeight: 0,
-            bestTime: 0,
-            totalBlocks: 0,
             currentBlock: null,
             nextBlock: null,
-            blocks: [], // 已放置的积木
-            baseX: 0,
-            baseY: 0,
+            blocks: [],
             cameraY: 0,
             targetCameraY: 0,
-            currentEvent: null,
-            eventTimer: null,
-            backgroundTheme: 0,
-            windOffset: 0,
-            shakeOffset: { x: 0, y: 0 },
-            towerTilt: 0 // 塔的整体倾斜角度
+            towerStability: 100,   // 塔的稳定性 0-100
+            towerTilt: 0,          // 塔的倾斜角度
+            inputOffset: 0,        // 玩家输入的偏移量
+            // 按键状态
+            keys: { left: false, right: false }
         };
         
         // ==================== Canvas设置 ====================
@@ -614,53 +553,51 @@
             canvas.style.height = height + 'px';
             canvas.width = CONFIG.CANVAS_WIDTH;
             canvas.height = CONFIG.CANVAS_HEIGHT;
-            
-            game.baseX = CONFIG.CANVAS_WIDTH / 2;
-            game.baseY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
         }
         
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
         
-        // ==================== 生成UID ====================
+        // ==================== 工具函数 ====================
         function generateUID() {
             return 'U' + Math.random().toString(36).substr(2, 8).toUpperCase();
         }
         
-        // ==================== 排行榜管理 ====================
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function getRandomBlockType() {
+            return BLOCK_TYPES[Math.floor(Math.random() * BLOCK_TYPES.length)];
+        }
+        
+        // ==================== 排行榜 ====================
         function getLeaderboard() {
-            const data = localStorage.getItem('blockTower_leaderboard');
+            const data = localStorage.getItem('precisionStack_leaderboard');
             return data ? JSON.parse(data) : [];
         }
         
-        function saveScore(playerName, height, blocks, time) {
+        function saveScore(playerName, height, score, perfectCount, time) {
             const leaderboard = getLeaderboard();
-            const score = {
+            const entry = {
                 uid: generateUID(),
                 name: playerName,
                 height: height,
-                blocks: blocks,
+                score: score,
+                perfectCount: perfectCount,
                 time: time,
-                score: height * 10 + blocks * 5,
                 date: new Date().toISOString()
             };
             
-            leaderboard.push(score);
-            leaderboard.sort((a, b) => b.height - a.height || a.time - b.time);
+            leaderboard.push(entry);
+            leaderboard.sort((a, b) => b.score - a.score);
             
-            // 只保留前100名
-            if (leaderboard.length > 100) {
-                leaderboard.length = 100;
-            }
+            if (leaderboard.length > 100) leaderboard.length = 100;
             
-            localStorage.setItem('blockTower_leaderboard', JSON.stringify(leaderboard));
-            
-            return leaderboard.findIndex(s => s.uid === score.uid) + 1;
-        }
-        
-        function getPlayerRank(uid) {
-            const leaderboard = getLeaderboard();
-            return leaderboard.findIndex(s => s.uid === uid) + 1;
+            localStorage.setItem('precisionStack_leaderboard', JSON.stringify(leaderboard));
+            return leaderboard.findIndex(s => s.uid === entry.uid) + 1;
         }
         
         function displayLeaderboard() {
@@ -669,205 +606,162 @@
             
             list.innerHTML = '';
             
-            leaderboard.forEach((player, index) => {
+            if (leaderboard.length === 0) {
+                list.innerHTML = '<div style="color:#666;text-align:center;padding:20px;">暂无记录</div>';
+                return;
+            }
+            
+            leaderboard.slice(0, 20).forEach((player, index) => {
                 const item = document.createElement('div');
                 item.className = 'rankItem' + (player.uid === game.uid ? ' current' : '');
                 item.innerHTML = `
                     <span class="rankNum">#${index + 1}</span>
                     <span class="rankName">${player.name}</span>
                     <span class="rankHeight">${player.height}层</span>
-                    <span class="rankTime">${formatTime(player.time)}</span>
+                    <span class="rankScore">${player.score}分</span>
                 `;
                 list.appendChild(item);
             });
-            
-            if (leaderboard.length === 0) {
-                list.innerHTML = '<div style="color:#666;text-align:center;padding:20px;">暂无记录</div>';
-            }
         }
         
-        // ==================== 工具函数 ====================
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
-        
-        function getRandomBlockType(height) {
-            // 根据高度逐步解锁所有形状
-            const easy = ['I', 'O', 'DOT', 'H2', 'BIG'];
-            const medium = ['T', 'S', 'Z', 'H3', 'SMALLL'];
-            const hard = ['J', 'L', 'PLUS'];
-            const expert = ['DIAMOND'];
-            
-            let pool = easy;
-            
-            if (height >= 10) pool = pool.concat(medium);
-            if (height >= 25) pool = pool.concat(hard);
-            if (height >= 40) pool = pool.concat(expert);
-            
-            return pool[Math.floor(Math.random() * pool.length)];
-        }
-        
+        // ==================== 积木创建 ====================
         function createBlock(type) {
-            const template = TETROMINO_SHAPES[type];
             return {
-                type: type,
-                shape: template.shape.map(row => [...row]),
-                color: template.color,
-                name: template.name,
-                x: game.baseX,
-                y: 50,
-                width: template.shape[0].length * CONFIG.BLOCK_SIZE,
-                height: template.shape.length * CONFIG.BLOCK_SIZE,
-                dropping: true,
+                ...type,
+                x: CONFIG.CANVAS_WIDTH / 2,  // 初始居中
+                y: CONFIG.SPAWN_Y,
+                width: type.shape[0].length * CONFIG.BLOCK_SIZE,
+                height: type.shape.length * CONFIG.BLOCK_SIZE,
                 placed: false,
-                currentSpeed: 0
+                offset: 0  // 相对中心的偏移
             };
-        }
-        
-        function getBackground(height) {
-            let bg = BACKGROUNDS[0];
-            for (let i = BACKGROUNDS.length - 1; i >= 0; i--) {
-                if (height >= BACKGROUNDS[i].height) {
-                    bg = BACKGROUNDS[i];
-                    break;
-                }
-            }
-            return bg;
-        }
-        
-        // ==================== 游戏逻辑 ====================
-        function startGame() {
-            // 隐藏所有浮层
-            const startScreen = document.getElementById('startScreen');
-            const gameOverScreen = document.getElementById('gameOverScreen');
-            const leaderboardScreen = document.getElementById('leaderboardScreen');
-            startScreen.style.display = 'none';
-            gameOverScreen.style.display = 'none';
-            leaderboardScreen.style.display = 'none';
-            
-            const nameInput = document.getElementById('playerNameInput');
-            game.playerName = nameInput.value.trim() || '匿名玩家';
-            
-            // 加载历史记录
-            const stats = localStorage.getItem('blockTower_stats');
-            if (stats) {
-                const s = JSON.parse(stats);
-                game.bestHeight = s.bestHeight || 0;
-                game.bestTime = s.bestTime || 0;
-                game.totalBlocks = s.totalBlocks || 0;
-            }
-            
-            game.uid = generateUID();
-            game.state = 'playing';
-            game.height = 0;
-            game.blockCount = 0;
-            game.startTime = Date.now();
-            game.elapsedTime = 0;
-            game.combo = 0;
-            game.blocks = [];
-            game.cameraY = 0;
-            game.targetCameraY = 0;
-            game.currentEvent = null;
-            game.towerTilt = 0;
-            game.baseX = CONFIG.CANVAS_WIDTH / 2;
-            game.baseY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
-            
-            // 创建初始积木
-            game.nextBlock = createBlock(getRandomBlockType(0));
-            spawnNextBlock();
-            
-            updateUI();
         }
         
         function spawnNextBlock() {
             game.currentBlock = game.nextBlock;
-            game.currentBlock.x = game.baseX;
-            // 积木从顶部开始
+            game.currentBlock.x = CONFIG.CANVAS_WIDTH / 2;
             game.currentBlock.y = CONFIG.SPAWN_Y;
-            game.currentBlock.dropping = true;  // 自动下落
             game.currentBlock.placed = false;
+            game.currentBlock.offset = 0;
             
-            // 随机旋转角度
-            game.currentBlock.rotation = [0, 90, 180, 270][Math.floor(Math.random() * 4)];
-            
-            // 计算目标落点
-            game.currentBlock.targetY = calculateLandingY();
-            
-            game.nextBlock = createBlock(getRandomBlockType(game.height));
+            game.nextBlock = createBlock(getRandomBlockType());
             drawNextBlock();
         }
         
-        function dropBlock() {
-            if (!game.currentBlock || game.currentBlock.placed) return;
-            // 玩家加速下落，直接落到目标位置
-            game.currentBlock.dropping = true;
-            game.currentBlock.y = game.currentBlock.targetY;
+        function drawNextBlock() {
+            const container = document.getElementById('nextBlock');
+            const block = game.nextBlock;
+            const cellSize = 12;
+            
+            let html = '<div style="display:grid;grid-template-columns:repeat(' + block.shape[0].length + ',' + cellSize + 'px);gap:1px;">';
+            
+            block.shape.forEach(row => {
+                row.forEach(cell => {
+                    if (cell) {
+                        html += '<div style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:' + block.color + ';border-radius:2px;"></div>';
+                    } else {
+                        html += '<div style="width:' + cellSize + 'px;height:' + cellSize + 'px;"></div>';
+                    }
+                });
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
         }
         
-        function rotateBlock() {
-            if (!game.currentBlock || game.currentBlock.placed) return;
-            // 顺时针旋转90度
-            game.currentBlock.rotation = (game.currentBlock.rotation + 90) % 360;
-            // 重新计算落点
-            game.currentBlock.targetY = calculateLandingY();
+        // ==================== 碰撞检测 ====================
+        function checkCollision(x, block) {
+            const baseTop = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
+            
+            // 检查是否碰到地基
+            if (block.y + block.height >= baseTop) {
+                return { collided: true, y: baseTop - block.height };
+            }
+            
+            // 检查是否碰到其他积木
+            for (let existing of game.blocks) {
+                const blockLeft = x - block.width / 2;
+                const blockRight = x + block.width / 2;
+                const blockTop = block.y;
+                const blockBottom = block.y + block.height;
+                
+                const existLeft = existing.x - existing.width / 2;
+                const existRight = existing.x + existing.width / 2;
+                const existTop = existing.y;
+                const existBottom = existing.y + existing.height;
+                
+                // 水平重叠
+                if (blockRight > existLeft && blockLeft < existRight) {
+                    // 垂直重叠
+                    if (blockBottom > existTop && blockTop < existBottom) {
+                        // 碰撞，返回积木应该停下的位置
+                        return { collided: true, y: existTop - block.height };
+                    }
+                }
+            }
+            
+            return { collided: false, y: 0 };
         }
         
-        // 落地闪光效果
-        let landingFlash = { active: false, alpha: 0 };
-        
-        // 积木放置完成回调（由draw函数调用）
-        function onBlockLanded() {
+        // ==================== 放置积木 ====================
+        function placeBlock() {
             const block = game.currentBlock;
             if (!block || block.placed) return;
             
-            // 不再检查"位置被占用"，让积木自由落下
-            // 积木会基于单元格自动找到正确的落点位置
-            
+            // 找到落点
+            const result = checkCollision(block.x, block);
+            block.y = result.y;
             block.placed = true;
-            block.dropping = false;
             
-            // 落地闪光效果
-            landingFlash = { active: true, alpha: 0.6, y: block.y + block.height };
+            // 计算偏移
+            const offset = Math.abs(block.x - CONFIG.CANVAS_WIDTH / 2);
+            block.offset = offset;
             
-            // 检查平衡
-            const tilt = calculateTowerTilt();
-            game.towerTilt = tilt;
+            // 计算得分
+            let placementBonus = 0;
+            let placementQuality = '';
             
-            if (Math.abs(tilt) > CONFIG.TILT_THRESHOLD) {
+            if (offset <= CONFIG.PERFECT_THRESHOLD) {
+                // 完美放置
+                placementBonus = 50;
+                placementQuality = 'PERFECT';
+                game.combo++;
+                game.perfectCount++;
+                showPerfectAlert();
+            } else if (offset <= CONFIG.GOOD_THRESHOLD) {
+                // 良好放置
+                placementBonus = 20;
+                placementQuality = 'GOOD';
+                game.combo = 0;
+            } else {
+                // 一般放置
+                placementBonus = 5;
+                placementQuality = 'OK';
+                game.combo = 0;
+            }
+            
+            // 连击加成
+            const comboBonus = game.combo * 10;
+            
+            // 总得分 = 基础分 + 放置奖励 + 连击加成
+            const totalPoints = 10 + placementBonus + comboBonus;
+            game.score += totalPoints;
+            
+            // 更新塔的稳定性
+            updateStability(offset);
+            
+            // 检查塔是否倒塌
+            if (Math.abs(game.towerTilt) > CONFIG.TILT_THRESHOLD) {
                 towerCollapse();
                 return;
             }
             
-            // 成功放置
+            // 保存积木
             game.blocks.push(block);
-            game.blockCount++;
             game.height++;
             
-            // 更新相机：保持顶部8格下落空间
+            // 更新相机
             game.targetCameraY = Math.max(0, (game.height - CONFIG.VIEW_SPACE) * CONFIG.BLOCK_SIZE);
-            
-            // 检查完美放置
-            const centerOffset = Math.abs(block.x - game.baseX);
-            if (centerOffset < CONFIG.PERFECT_THRESHOLD) {
-                game.combo++;
-                showEventAlert('✨ 完美！');
-            } else {
-                game.combo = 0;
-            }
-            
-            // 检查随机事件
-            if (game.blockCount % CONFIG.EVENT_INTERVAL === 0 && Math.random() < CONFIG.EVENT_CHANCE) {
-                triggerRandomEvent();
-            }
-            
-            // 检查背景变化
-            const newBg = getBackground(game.height);
-            const oldBg = getBackground(game.height - 1);
-            if (newBg.theme !== oldBg.theme) {
-                showEventAlert('🎉 ' + newBg.theme.toUpperCase() + ' 关卡!');
-            }
             
             updateUI();
             
@@ -879,517 +773,345 @@
             }, 300);
         }
         
-        // 俄罗斯方块式形状旋转
-        function getRotatedShape(shape, rotation) {
-            if (rotation === 0) return shape;
+        function updateStability(offset) {
+            // 偏移越大，稳定性下降越多
+            const offsetPenalty = (offset / CONFIG.MAX_OFFSET) * 15;
             
-            const rows = shape.length;
-            const cols = shape[0].length;
-            let result;
+            // 完美放置恢复稳定性
+            const recovery = offset <= CONFIG.PERFECT_THRESHOLD ? 5 : 0;
             
-            if (rotation === 90) {
-                // 顺时针旋转90度
-                result = [];
-                for (let c = 0; c < cols; c++) {
-                    result[c] = [];
-                    for (let r = rows - 1; r >= 0; r--) {
-                        result[c][rows - 1 - r] = shape[r][c];
-                    }
-                }
-            } else if (rotation === 180) {
-                // 旋转180度
-                result = [];
-                for (let r = rows - 1; r >= 0; r--) {
-                    result[rows - 1 - r] = [];
-                    for (let c = cols - 1; c >= 0; c--) {
-                        result[rows - 1 - r][cols - 1 - c] = shape[r][c];
-                    }
-                }
-            } else if (rotation === 270) {
-                // 逆时针旋转90度
-                result = [];
-                for (let c = cols - 1; c >= 0; c--) {
-                    result[cols - 1 - c] = [];
-                    for (let r = 0; r < rows; r++) {
-                        result[cols - 1 - c][r] = shape[r][c];
-                    }
-                }
-            }
+            // 更新稳定性
+            game.towerStability = Math.max(0, Math.min(100, 
+                game.towerStability * CONFIG.STABILITY_DECAY - offsetPenalty + recovery
+            ));
             
-            return result;
+            // 计算塔的倾斜
+            calculateTilt();
         }
         
-        // 俄罗斯方块式碰撞检测
-        function checkTetrisCollision(x, y, shape) {
-            const cellSize = CONFIG.BLOCK_SIZE;
-            const baseTopY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
-            
-            // 遍历每个单元格
-            for (let rowIdx = 0; rowIdx < shape.length; rowIdx++) {
-                for (let colIdx = 0; colIdx < shape[rowIdx].length; colIdx++) {
-                    if (!shape[rowIdx][colIdx]) continue;
-                    
-                    // 计算单元格位置
-                    const cellLeft = x - shape[0].length * cellSize / 2 + colIdx * cellSize;
-                    const cellRight = cellLeft + cellSize;
-                    const cellTop = y + rowIdx * cellSize;
-                    const cellBottom = cellTop + cellSize;
-                    
-                    // 检查是否碰到基座
-                    if (cellBottom >= baseTopY) {
-                        return true;
-                    }
-                    
-                    // 检查是否碰到其他积木
-                    for (let existing of game.blocks) {
-                        const existLeft = existing.x - existing.width / 2;
-                        const existRight = existLeft + existing.width;
-                        const existTop = existing.y;
-                        const existBottom = existTop + existing.height;
-                        
-                        // 水平重叠检测
-                        if (cellRight > existLeft && cellLeft < existRight) {
-                            // 垂直重叠检测
-                            if (cellBottom > existTop && cellTop < existBottom) {
-                                return true;
-                            }
-                        }
-                    }
-                }
+        function calculateTilt() {
+            if (game.blocks.length < 2) {
+                game.towerTilt = 0;
+                return;
             }
             
-            return false;
-        }
-        
-        function calculateLandingY() {
-            const block = game.currentBlock;
-            const cellSize = CONFIG.BLOCK_SIZE;
-            const baseTopY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
-            
-            // 获取旋转后的形状
-            const rotatedShape = getRotatedShape(block.shape, block.rotation);
-            
-            // 从顶部开始，逐步向下扫描找落点
-            let landingY = block.y;
-            
-            while (landingY < baseTopY) {
-                // 检查当前位置是否会碰撞
-                if (checkTetrisCollision(block.x, landingY + CONFIG.DROP_SPEED, rotatedShape)) {
-                    // 碰撞了，当前位置就是落点
-                    break;
-                }
-                landingY += CONFIG.DROP_SPEED;
-            }
-            
-            // 确保不超过基座
-            const rotatedHeight = rotatedShape.length * cellSize;
-            if (landingY > baseTopY - rotatedHeight) {
-                landingY = baseTopY - rotatedHeight;
-            }
-            
-            return Math.max(block.y, landingY);
-        }
-        
-        // 检查积木是否与现有积木发生真正的重叠碰撞（基于单元格）
-        function checkBlockCollision(block, blockY) {
-            const cellSize = CONFIG.BLOCK_SIZE;
-            
-            // 遍历积木的每个单元格
-            for (let rowIdx = 0; rowIdx < block.shape.length; rowIdx++) {
-                for (let colIdx = 0; colIdx < block.shape[rowIdx].length; colIdx++) {
-                    if (!block.shape[rowIdx][colIdx]) continue;
-                    
-                    // 计算这个单元格的范围（与calculateLandingY一致）
-                    const cellLeftX = block.x - block.width / 2 + colIdx * cellSize;
-                    const cellRightX = cellLeftX + cellSize;
-                    const cellTopY = blockY + rowIdx * cellSize;
-                    const cellBottomY = cellTopY + cellSize;
-                    
-                    // 检查是否与任何已放置积木重叠
-                    for (let existingBlock of game.blocks) {
-                        const existLeft = existingBlock.x - existingBlock.width / 2;
-                        const existRight = existingBlock.x + existingBlock.width / 2;
-                        const existTop = existingBlock.y;
-                        const existBottom = existingBlock.y + existingBlock.height;
-                        
-                        // 检查水平重叠
-                        if (cellRightX > existLeft && cellLeftX < existRight) {
-                            // 计算垂直重叠量
-                            const overlapTop = Math.max(cellTopY, existTop);
-                            const overlapBottom = Math.min(cellBottomY, existBottom);
-                            const verticalOverlap = overlapBottom - overlapTop;
-                            
-                            // 只有当垂直重叠量超过阈值时才认为是碰撞
-                            // 紧贴（overlap <= 0）不算碰撞
-                            // 只有真正进入已有积木内部才算碰撞
-                            if (verticalOverlap > cellSize * 0.3) { // 重叠超过30%单元格大小才算碰撞
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-        
-        function calculateTowerTilt() {
-            if (game.blocks.length < 2) return 0;
-            
-            // 计算整体偏移
+            // 计算所有积木的平均偏移方向和程度
             let totalOffset = 0;
-            game.blocks.forEach(block => {
-                totalOffset += block.x - game.baseX;
+            let weight = 0;
+            
+            game.blocks.forEach((block, i) => {
+                const w = i + 1;  // 越高的积木权重越大
+                totalOffset += (block.x - CONFIG.CANVAS_WIDTH / 2) * w;
+                weight += w;
             });
             
-            const avgOffset = totalOffset / game.blocks.length;
-            const height = game.blocks.length * CONFIG.BLOCK_SIZE;
+            const avgOffset = totalOffset / weight;
+            const towerHeight = game.blocks.length * CONFIG.BLOCK_SIZE;
             
-            // 转换为角度
-            const tiltAngle = Math.atan2(avgOffset, height) * (180 / Math.PI);
-            return tiltAngle;
+            // 计算倾斜角度
+            game.towerTilt = Math.atan2(avgOffset, towerHeight) * (180 / Math.PI);
+        }
+        
+        function showPerfectAlert() {
+            const alert = document.getElementById('perfectAlert');
+            alert.style.display = 'block';
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 800);
         }
         
         function towerCollapse() {
             game.state = 'gameover';
             
-            // 保存历史记录
-            const stats = {
-                bestHeight: Math.max(game.bestHeight, game.height),
-                bestTime: game.bestTime === 0 ? game.elapsedTime : Math.min(game.bestTime, game.elapsedTime),
-                totalBlocks: game.totalBlocks + game.blockCount
-            };
-            localStorage.setItem('blockTower_stats', JSON.stringify(stats));
-            
-            // 保存分数
-            const rank = saveScore(game.playerName, game.height, game.blockCount, game.elapsedTime);
-            
-            // 立即显示结束界面（不再延迟）
             document.getElementById('finalHeight').textContent = game.height;
-            document.getElementById('finalBlocks').textContent = game.blockCount;
+            document.getElementById('finalScore').textContent = game.score;
+            document.getElementById('perfectCount').textContent = game.perfectCount;
             document.getElementById('finalTime').textContent = formatTime(game.elapsedTime);
-            document.getElementById('finalScore').textContent = game.height * 10 + game.blockCount * 5;
+            
+            saveScore(game.playerName, game.height, game.score, game.perfectCount, game.elapsedTime);
             
             document.getElementById('gameOverScreen').style.display = 'flex';
         }
         
-        function triggerRandomEvent() {
-            const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
-            game.currentEvent = event;
+        // ==================== 游戏控制 ====================
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('leaderboardScreen').style.display = 'none';
             
-            showEventAlert(event.name);
+            const nameInput = document.getElementById('playerNameInput');
+            game.playerName = nameInput.value.trim() || '匿名玩家';
             
-            // 应用事件效果
-            if (event.effect.includes('wind')) {
-                game.windOffset = event.intensity * (event.effect === 'wind_strong' ? 1 : -1);
-            } else if (event.effect === 'lightning' || event.effect === 'storm' || event.effect === 'superman') {
-                game.shakeOffset = { 
-                    x: (Math.random() - 0.5) * event.intensity * 2,
-                    y: (Math.random() - 0.5) * event.intensity * 2
-                };
-            }
+            game.uid = generateUID();
+            game.state = 'playing';
+            game.height = 0;
+            game.score = 0;
+            game.perfectCount = 0;
+            game.combo = 0;
+            game.startTime = Date.now();
+            game.elapsedTime = 0;
+            game.blocks = [];
+            game.cameraY = 0;
+            game.targetCameraY = 0;
+            game.towerStability = 100;
+            game.towerTilt = 0;
+            game.inputOffset = 0;
             
-            clearTimeout(game.eventTimer);
-            game.eventTimer = setTimeout(() => {
-                game.currentEvent = null;
-                game.windOffset = 0;
-                game.shakeOffset = { x: 0, y: 0 };
-            }, event.duration);
-        }
-        
-        // ==================== 碰撞物理效果（简化版）====================
-        let blockShake = { active: false, time: 0 };
-        
-        // 积木放置后轻微晃动（但不移动位置）
-        function triggerBlockShake() {
-            blockShake = { active: true, time: 8 }; // 轻微晃动
-        }
-        
-        // 更新晃动状态
-        function updateBlockShake() {
-            if (blockShake.active && blockShake.time > 0) {
-                blockShake.time--;
-            } else {
-                blockShake.active = false;
-            }
-        }
-        
-        function showEventAlert(text) {
-            const alert = document.getElementById('eventAlert');
-            alert.textContent = text;
-            alert.style.display = 'block';
-            setTimeout(() => {
-                alert.style.display = 'none';
-            }, 2000);
+            game.nextBlock = createBlock(getRandomBlockType());
+            spawnNextBlock();
+            
+            updateUI();
         }
         
         function updateUI() {
             document.getElementById('heightDisplay').textContent = game.height;
-            document.getElementById('blockCount').textContent = game.blockCount;
+            document.getElementById('scoreDisplay').textContent = game.score;
             document.getElementById('timeDisplay').textContent = formatTime(game.elapsedTime);
-            document.getElementById('bestHeight').textContent = game.bestHeight;
-            document.getElementById('bestTime').textContent = game.bestTime > 0 ? formatTime(game.bestTime) : '--:--';
-            document.getElementById('totalBlocks').textContent = game.totalBlocks;
             document.getElementById('comboCount').textContent = '🔥 ' + game.combo + '连击';
+            
+            // 更新偏移指示器
+            if (game.currentBlock) {
+                const offset = game.currentBlock.x - CONFIG.CANVAS_WIDTH / 2;
+                const percent = 50 + (offset / CONFIG.MAX_OFFSET) * 50;
+                const indicator = document.getElementById('offsetIndicator');
+                const value = document.getElementById('offsetValue');
+                
+                indicator.style.left = Math.max(5, Math.min(95, percent)) + '%';
+                
+                if (Math.abs(offset) <= CONFIG.PERFECT_THRESHOLD) {
+                    indicator.style.background = '#4ecca3';
+                } else if (Math.abs(offset) <= CONFIG.GOOD_THRESHOLD) {
+                    indicator.style.background = '#ffd93d';
+                } else {
+                    indicator.style.background = '#e94560';
+                }
+                
+                value.textContent = Math.round(offset) + ' px';
+            }
+            
+            // 更新稳定性条
+            document.getElementById('stabilityFill').style.width = game.towerStability + '%';
         }
         
-        function drawNextBlock() {
-            const container = document.getElementById('nextBlock');
-            const block = game.nextBlock;
-            const cellSize = 12;  // 预览区积木大小
+        // ==================== 输入处理 ====================
+        function handleInput() {
+            if (game.state !== 'playing' || !game.currentBlock || game.currentBlock.placed) return;
             
-            let html = '<div style="display:grid;grid-template-columns:repeat(' + block.shape[0].length + ',' + cellSize + 'px);gap:1px;">';
+            // 处理键盘输入
+            if (game.keys.left) {
+                game.currentBlock.x -= CONFIG.MOVE_SPEED;
+            }
+            if (game.keys.right) {
+                game.currentBlock.x += CONFIG.MOVE_SPEED;
+            }
             
-            block.shape.forEach(row => {
-                row.forEach(cell => {
-                    if (cell) {
-                        html += '<div style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:' + block.color + ';border:1px solid rgba(0,0,0,0.3);"></div>';
-                    } else {
-                        html += '<div style="width:' + cellSize + 'px;height:' + cellSize + 'px;"></div>';
-                    }
-                });
-            });
-            
-            html += '</div>';
-            container.innerHTML = html;
+            // 限制范围
+            const halfWidth = game.currentBlock.width / 2;
+            game.currentBlock.x = Math.max(halfWidth + 10, Math.min(CONFIG.CANVAS_WIDTH - halfWidth - 10, game.currentBlock.x));
         }
         
-        // ==================== 绘制函数 ====================
+        // 键盘事件
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') { game.keys.left = true; e.preventDefault(); }
+            if (e.key === 'ArrowRight') { game.keys.right = true; e.preventDefault(); }
+            if (e.key === ' ' || e.key === 'ArrowDown') {
+                if (game.state === 'playing' && game.currentBlock && !game.currentBlock.placed) {
+                    placeBlock();
+                }
+                e.preventDefault();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') game.keys.left = false;
+            if (e.key === 'ArrowRight') game.keys.right = false;
+        });
+        
+        // 移动端控制
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        const dropBtn = document.getElementById('dropBtn');
+        
+        leftBtn.addEventListener('touchstart', (e) => { game.keys.left = true; e.preventDefault(); });
+        leftBtn.addEventListener('touchend', () => { game.keys.left = false; });
+        rightBtn.addEventListener('touchstart', (e) => { game.keys.right = true; e.preventDefault(); });
+        rightBtn.addEventListener('touchend', () => { game.keys.right = false; });
+        dropBtn.addEventListener('touchstart', (e) => { 
+            if (game.state === 'playing' && game.currentBlock && !game.currentBlock.placed) {
+                placeBlock();
+            }
+            e.preventDefault(); 
+        });
+        
+        // UI 按钮事件
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('rankBtn').addEventListener('click', () => {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('leaderboardScreen').style.display = 'flex';
+            displayLeaderboard();
+        });
+        document.getElementById('restartBtn').addEventListener('click', startGame);
+        document.getElementById('viewRankBtn').addEventListener('click', () => {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('leaderboardScreen').style.display = 'flex';
+            displayLeaderboard();
+        });
+        document.getElementById('closeLeaderboard').addEventListener('click', () => {
+            document.getElementById('leaderboardScreen').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'flex';
+        });
+        
+        // ==================== 绘制 ====================
         function draw() {
             ctx.clearRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
             
-            // 更新相机（平滑跟随）
+            // 更新相机
             game.cameraY += (game.targetCameraY - game.cameraY) * 0.15;
             
-            // 更新积木碰撞晃动
-            updateBlockShake();
-            
-            // 更新时间和应用效果
+            // 更新时间
             if (game.state === 'playing') {
                 game.elapsedTime = Math.floor((Date.now() - game.startTime) / 1000);
-                updateUI();
-                
-                // 随机震动衰减
-                if (game.shakeOffset.x !== 0 || game.shakeOffset.y !== 0) {
-                    game.shakeOffset.x *= 0.95;
-                    game.shakeOffset.y *= 0.95;
-                }
             }
             
-            const bg = getBackground(game.height);
-            
             // 绘制背景
-            ctx.fillStyle = bg.bgColor;
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, CONFIG.CANVAS_HEIGHT);
+            bgGradient.addColorStop(0, '#1a1a2e');
+            bgGradient.addColorStop(1, '#16213e');
+            ctx.fillStyle = bgGradient;
             ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
             
-            // 绘制背景元素
+            // 绘制塔的投影（根据倾斜角度）
             ctx.save();
-            // 相机向上移动时，塔向下移动（加cameraY）
-            ctx.translate(game.shakeOffset.x, game.shakeOffset.y + game.cameraY);
+            ctx.translate(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT);
+            ctx.rotate(game.towerTilt * Math.PI / 180);
+            ctx.translate(-CONFIG.CANVAS_WIDTH / 2, -(CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT));
             
-            drawBackgroundElements(bg);
+            // 绘制基座
+            const baseGradient = ctx.createLinearGradient(0, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT, 0, CONFIG.CANVAS_HEIGHT);
+            baseGradient.addColorStop(0, '#4a4a6a');
+            baseGradient.addColorStop(1, '#2a2a4a');
+            ctx.fillStyle = baseGradient;
+            ctx.fillRect(CONFIG.CANVAS_WIDTH / 2 - 100, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT, 200, CONFIG.BASE_HEIGHT);
             
-            // 绘制基座（固定在屏幕下方）
-            drawBase();
+            // 绘制基座上的参考线（完美放置指示）
+            ctx.strokeStyle = 'rgba(78, 204, 163, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT);
+            ctx.lineTo(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - 400);
+            ctx.stroke();
+            ctx.setLineDash([]);
             
             // 绘制已放置的积木
             game.blocks.forEach(block => {
                 drawBlock(block, false);
             });
             
-            // 绘制落地闪光效果
-            if (landingFlash.active) {
-                ctx.fillStyle = 'rgba(255,255,255,' + landingFlash.alpha + ')';
-                ctx.fillRect(0, landingFlash.y + game.cameraY - 5, CONFIG.CANVAS_WIDTH, 10);
-                landingFlash.alpha -= 0.05;
-                if (landingFlash.alpha <= 0) {
-                    landingFlash.active = false;
-                }
-            }
+            ctx.restore();
             
-            ctx.restore(); // 相机变换结束
-            
-            // 绘制当前积木（固定在屏幕顶部，不受相机影响）
-            if (game.currentBlock && game.state === 'playing') {
+            // 绘制当前下落中的积木
+            if (game.currentBlock && !game.currentBlock.placed && game.state === 'playing') {
                 const block = game.currentBlock;
                 
-                // 应用风力影响
-                if (game.windOffset !== 0) {
-                    block.x += game.windOffset * 0.1;
-                    block.x = Math.max(50, Math.min(CONFIG.CANVAS_WIDTH - 50, block.x));
+                // 处理输入
+                handleInput();
+                
+                // 下落动画
+                block.y += CONFIG.DROP_SPEED;
+                
+                // 检查碰撞
+                const result = checkCollision(block.x, block);
+                if (result.collided) {
+                    block.y = result.y;
+                    placeBlock();
                 }
                 
-                // 下落动画（带加速度）- 从屏幕顶部完整下落
-                if (block.dropping) {
-                    // 初始化下落速度
-                    if (!block.currentSpeed) block.currentSpeed = CONFIG.DROP_SPEED;
-                    
-                    // 逐渐加速
-                    block.currentSpeed = Math.min(block.currentSpeed + CONFIG.DROP_ACCELERATION, CONFIG.MAX_DROP_SPEED);
-                    
-                    // 移动积木
-                    block.y += block.currentSpeed;
-                    
-                    // 绘制下落轨迹（从积木顶部到落点，虚线）
-                    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                // 绘制下落轨迹
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(block.x, CONFIG.SPAWN_Y);
+                ctx.lineTo(block.x, block.y + block.height);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // 绘制积木阴影
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillRect(block.x - block.width / 2 + 3, block.y + block.height - 3, block.width, 6);
+                
+                // 绘制积木
+                drawBlock(block, true);
+                
+                // 绘制偏移指示
+                const offset = block.x - CONFIG.CANVAS_WIDTH / 2;
+                if (Math.abs(offset) <= CONFIG.PERFECT_THRESHOLD) {
+                    ctx.strokeStyle = '#4ecca3';
                     ctx.lineWidth = 3;
-                    ctx.setLineDash([8, 8]);
-                    ctx.beginPath();
-                    ctx.moveTo(block.x, CONFIG.SPAWN_Y);
-                    ctx.lineTo(block.x, block.targetY + block.height);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    
-                    // 绘制下落距离指示（半透明积木轮廓）
-                    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-                    const dropStartY = CONFIG.SPAWN_Y;
-                    const dropEndY = block.targetY;
-                    const dropHeight = dropEndY - dropStartY + block.height;
-                    ctx.fillRect(block.x - block.width/2, dropStartY, block.width, dropHeight);
-                    
-                    // 绘制速度线（动感效果，越快越多线）
-                    const speedRatio = block.currentSpeed / CONFIG.MAX_DROP_SPEED;
-                    const lineCount = Math.floor(3 + speedRatio * 5);
-                    for (let i = 1; i <= lineCount; i++) {
-                        const lineY = block.y + block.height + i * 12;
-                        const alpha = 0.4 - (i * 0.06);
-                        if (lineY > block.y + block.height && lineY < block.targetY + block.height + 20) {
-                            ctx.strokeStyle = 'rgba(255,255,255,' + alpha + ')';
-                            ctx.lineWidth = 2;
-                            ctx.beginPath();
-                            ctx.moveTo(block.x - block.width/2 - 5, lineY);
-                            ctx.lineTo(block.x + block.width/2 + 5, lineY);
-                            ctx.stroke();
-                        }
-                    }
-                    
-                    // 绘制积木阴影（积木越靠近落点，阴影越深）
-                    const shadowAlpha = Math.min(0.5, (block.y - CONFIG.SPAWN_Y) / (block.targetY - CONFIG.SPAWN_Y) * 0.5);
-                    ctx.fillStyle = 'rgba(0,0,0,' + shadowAlpha + ')';
-                    ctx.fillRect(block.x - block.width/2 + 5, block.targetY + block.height - 5, block.width, 8);
-                    
-                    // 检查是否落到目标位置
-                    if (block.y >= block.targetY) {
-                        block.y = block.targetY;
-                        block.currentSpeed = 0; // 重置速度
-                        // 触发放置完成
-                        onBlockLanded();
-                    }
-                }
-                
-                // 绘制下落中的积木
-                if (!block.placed) {
-                    drawBlock(block, true);
+                    ctx.strokeRect(block.x - block.width / 2 - 3, block.y - 3, block.width + 6, block.height + 6);
                 }
             }
             
-            // 绘制事件效果
-            if (game.currentEvent) {
-                drawEventEffect();
+            // 绘制塔顶晃动指示
+            if (game.towerStability < 50) {
+                ctx.save();
+                ctx.translate(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - game.height * CONFIG.BLOCK_SIZE);
+                ctx.rotate(game.towerTilt * Math.PI / 180);
+                ctx.strokeStyle = 'rgba(233, 69, 96, ' + (1 - game.towerStability / 50) * 0.5 + ')';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.moveTo(-20, 0);
+                ctx.lineTo(20, 0);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
             }
             
-            // 游戏结束动画
-            if (game.state === 'gameover') {
-                drawGameOver();
-            }
-            
+            updateUI();
             requestAnimationFrame(draw);
         }
         
-        function drawBackgroundElements(bg) {
-            const elements = ['🌱','🌸','🌿','🏠','🌳','🚗','🏢','🏬','🏗️','⛰️','🦅','🌲','☁️','🎈','🪁','🌙','⭐','✨','🪐','🌟','🚀','💫','🔮','⚫'];
-            
-            ctx.font = '20px Arial';
-            ctx.textAlign = 'center';
-            
-            for (let i = 0; i < 15; i++) {
-                const x = (i * 73 + Date.now() * 0.01) % (CONFIG.CANVAS_WIDTH + 100) - 50;
-                // 背景元素向上滚动（相对移动）
-                const y = ((i * 47 - game.cameraY * 0.3) % (CONFIG.CANVAS_HEIGHT + 200)) - 100;
-                ctx.fillText(elements[i % elements.length], x, y);
-            }
-            
-            // 地面线（固定在屏幕下方）
-            ctx.fillStyle = '#228B22';
-            ctx.fillRect(0, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT, CONFIG.CANVAS_WIDTH, CONFIG.BASE_HEIGHT);
-            
-            ctx.strokeStyle = '#006400';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(0, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT);
-            ctx.lineTo(CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT);
-            ctx.stroke();
-        }
-        
-        function drawBase() {
-            const x = game.baseX - 60;
-            // 基座固定在屏幕下方
-            const y = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
-            
-            // 基座
-            ctx.fillStyle = '#8B4513';
-            ctx.fillRect(x, y, 120, CONFIG.BASE_HEIGHT);
-            
-            // 基座纹理
-            ctx.strokeStyle = '#654321';
-            ctx.lineWidth = 2;
-            for (let i = 0; i < 4; i++) {
-                ctx.beginPath();
-                ctx.moveTo(x + i * 30, y);
-                ctx.lineTo(x + i * 30, y + CONFIG.BASE_HEIGHT);
-                ctx.stroke();
-            }
-            
-            // 基座顶部高光
-            ctx.fillStyle = '#A0522D';
-            ctx.fillRect(x, y, 160, 5);
-        }
-        
-        function drawBlock(block, isCurrentBlock) {
+        function drawBlock(block, isActive) {
             const cellSize = CONFIG.BLOCK_SIZE;
-            
-            // 获取要绘制的形状（考虑旋转）
-            const shape = isCurrentBlock ? getRotatedShape(block.shape, block.rotation) : block.shape;
-            const shapeWidth = shape[0].length * cellSize;
-            const shapeHeight = shape.length * cellSize;
-            
-            // 计算位置（居中）
-            const x = block.x - shapeWidth / 2;
-            // 当前积木固定在屏幕顶部，已放置积木跟随相机
-            const y = isCurrentBlock ? CONFIG.SPAWN_Y : block.y;
+            const x = block.x - block.width / 2;
+            const y = block.y - game.cameraY;
             
             // 绘制每个单元格
-            shape.forEach((row, rowIndex) => {
-                row.forEach((cell, colIndex) => {
-                    if (cell) {
-                        const cx = x + colIndex * cellSize;
-                        const cy = y + rowIndex * cellSize;
-                        
-                        // 像素风格积木
-                        ctx.fillStyle = block.color;
-                        ctx.fillRect(cx, cy, cellSize, cellSize);
-                        
-                        // 边框
-                        ctx.strokeStyle = shadeColor(block.color, -30);
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(cx, cy, cellSize, cellSize);
-                        
-                        // 高光
-                        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                        ctx.fillRect(cx + 2, cy + 2, cellSize - 4, 4);
-                        
-                        // 像素点装饰
-                        ctx.fillStyle = shadeColor(block.color, 20);
-                        ctx.fillRect(cx + cellSize - 8, cy + cellSize - 8, 4, 4);
-                        
-                        // 调试：绘制单元格边界（红色虚线）
-                        ctx.strokeStyle = 'rgba(255,0,0,0.5)';
-                        ctx.lineWidth = 1;
-                        ctx.setLineDash([2, 2]);
-                        ctx.strokeRect(cx, cy, cellSize, cellSize);
-                        ctx.setLineDash([]);
+            for (let row = 0; row < block.shape.length; row++) {
+                for (let col = 0; col < block.shape[row].length; col++) {
+                    if (!block.shape[row][col]) continue;
+                    
+                    const cellX = x + col * cellSize;
+                    const cellY = y + row * cellSize;
+                    
+                    // 单元格渐变
+                    const gradient = ctx.createLinearGradient(cellX, cellY, cellX, cellY + cellSize);
+                    gradient.addColorStop(0, block.color);
+                    gradient.addColorStop(1, shadeColor(block.color, -30));
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(cellX, cellY, cellSize - 1, cellSize - 1);
+                    
+                    // 高光
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.fillRect(cellX + 2, cellY + 2, cellSize - 5, 3);
+                    
+                    // 阴影线
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(cellX, cellY, cellSize - 1, cellSize - 1);
+                    
+                    // 活跃积木的发光效果
+                    if (isActive) {
+                        ctx.shadowColor = block.color;
+                        ctx.shadowBlur = 10;
                     }
-                });
-            });
+                }
+            }
+            
+            ctx.shadowBlur = 0;
         }
         
         function shadeColor(color, percent) {
@@ -1398,175 +1120,14 @@
             const R = (num >> 16) + amt;
             const G = (num >> 8 & 0x00FF) + amt;
             const B = (num & 0x0000FF) + amt;
-            return '#' + (0x1000000 + 
-                (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 + 
-                (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 + 
+            return '#' + (0x1000000 +
+                (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+                (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
                 (B < 255 ? (B < 1 ? 0 : B) : 255)
             ).toString(16).slice(1);
         }
         
-        function drawEventEffect() {
-            const event = game.currentEvent;
-            
-            if (event.effect === 'lightning') {
-                // 闪电效果
-                if (Math.random() > 0.7) {
-                    ctx.fillStyle = 'rgba(255,255,255,' + Math.random() * 0.5 + ')';
-                    ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
-                }
-            } else if (event.effect === 'storm') {
-                // 雨滴效果
-                ctx.fillStyle = 'rgba(100,149,237,0.5)';
-                for (let i = 0; i < 50; i++) {
-                    const x = Math.random() * CONFIG.CANVAS_WIDTH;
-                    const y = Math.random() * CONFIG.CANVAS_HEIGHT;
-                    ctx.fillRect(x, y, 1, 10);
-                }
-            } else if (event.effect === 'ufo') {
-                // 飞船吸力波纹
-                ctx.strokeStyle = 'rgba(0,255,255,0.3)';
-                ctx.lineWidth = 2;
-                for (let i = 0; i < 3; i++) {
-                    const radius = 50 + i * 30 + (Date.now() * 0.1 % 30);
-                    ctx.beginPath();
-                    ctx.arc(CONFIG.CANVAS_WIDTH / 2, 100 - game.cameraY, radius, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-            }
-        }
-        
-        function drawGameOver() {
-            // 积木倒塌动画
-            game.blocks.forEach(block => {
-                block.y += 5;
-                block.x += (Math.random() - 0.5) * 10;
-            });
-        }
-        
-        // ==================== 控制输入 ====================
-        // 键盘控制
-        document.addEventListener('keydown', (e) => {
-            if (game.state !== 'playing' || !game.currentBlock) return;
-            
-            switch (e.key) {
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    game.currentBlock.x -= CONFIG.MOVE_SPEED;
-                    game.currentBlock.x = Math.max(50, game.currentBlock.x);
-                    break;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    game.currentBlock.x += CONFIG.MOVE_SPEED;
-                    game.currentBlock.x = Math.min(CONFIG.CANVAS_WIDTH - 50, game.currentBlock.x);
-                    break;
-                case 'ArrowDown':
-                case ' ':
-                    e.preventDefault();
-                    dropBlock();
-                    break;
-                case 'ArrowUp':
-                case 'x':
-                case 'X':
-                    e.preventDefault();
-                    rotateBlock();
-                    break;
-            }
-        });
-        
-        // 移动端控制
-        let touchInterval = null;
-        
-        document.getElementById('leftBtn').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (game.currentBlock) {
-                game.currentBlock.x -= CONFIG.MOVE_SPEED;
-                game.currentBlock.x = Math.max(50, game.currentBlock.x);
-            }
-        });
-        
-        document.getElementById('rightBtn').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (game.currentBlock) {
-                game.currentBlock.x += CONFIG.MOVE_SPEED;
-                game.currentBlock.x = Math.min(CONFIG.CANVAS_WIDTH - 50, game.currentBlock.x);
-            }
-        });
-        
-        document.getElementById('dropBtn').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            dropBlock();
-        });
-        
-        document.getElementById('rotateBtn').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            rotateBlock();
-        });
-        
-        // 按钮事件
-        document.getElementById('startBtn').addEventListener('click', startGame);
-        document.getElementById('restartBtn').addEventListener('click', () => {
-            document.getElementById('gameOverScreen').style.display = 'none';
-            startGame();
-        });
-        
-        document.getElementById('leaderboardBtn').addEventListener('click', () => {
-            displayLeaderboard();
-            document.getElementById('leaderboardScreen').style.display = 'flex';
-        });
-        
-        document.getElementById('rankBtn').addEventListener('click', () => {
-            displayLeaderboard();
-            document.getElementById('leaderboardScreen').style.display = 'flex';
-        });
-        
-        document.getElementById('viewRankBtn').addEventListener('click', () => {
-            document.getElementById('gameOverScreen').style.display = 'none';
-            displayLeaderboard();
-            document.getElementById('leaderboardScreen').style.display = 'flex';
-        });
-        
-        document.getElementById('closeLeaderboard').addEventListener('click', () => {
-            document.getElementById('leaderboardScreen').style.display = 'none';
-            if (game.state === 'gameover') {
-                document.getElementById('gameOverScreen').style.display = 'flex';
-            }
-        });
-        
-        // 触摸滑动控制（移动端主控制方式）
-        let touchStartX = 0;
-        let isTouchMoving = false;
-        
-        canvas.addEventListener('touchstart', (e) => {
-            if (game.state !== 'playing') return;
-            touchStartX = e.touches[0].clientX;
-            isTouchMoving = false;
-        });
-        
-        canvas.addEventListener('touchmove', (e) => {
-            if (game.state !== 'playing' || !game.currentBlock) return;
-            e.preventDefault();
-            
-            const touchX = e.touches[0].clientX;
-            const diff = touchX - touchStartX;
-            
-            if (Math.abs(diff) > 10) {
-                isTouchMoving = true;
-                game.currentBlock.x += diff > 0 ? CONFIG.MOVE_SPEED : -CONFIG.MOVE_SPEED;
-                game.currentBlock.x = Math.max(50, Math.min(CONFIG.CANVAS_WIDTH - 50, game.currentBlock.x));
-                touchStartX = touchX;
-            }
-        });
-        
-        canvas.addEventListener('touchend', () => {
-            if (game.state !== 'playing') return;
-            // 如果没有滑动，则投放积木
-            if (!isTouchMoving) {
-                dropBlock();
-            }
-            isTouchMoving = false;
-        });
-        
-        // ==================== 启动游戏 ====================
+        // 启动游戏循环
         draw();
     </script>
 </body>
