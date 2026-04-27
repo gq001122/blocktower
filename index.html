@@ -339,9 +339,11 @@
         function spawnNextBlock() {
             game.currentBlock = game.nextBlock;
             game.currentBlock.x = CONFIG.CANVAS_WIDTH / 2;
-            game.currentBlock.y = CONFIG.SPAWN_Y;
+            // 积木初始显示在地基上方
+            const baseTop = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
+            game.currentBlock.y = baseTop - game.currentBlock.height - 5;
             game.currentBlock.placed = false;
-            game.readyToDrop = true;  // 允许投放
+            game.readyToDrop = true;
             
             game.nextBlock = createBlock(BLOCK_TYPES[Math.floor(Math.random() * BLOCK_TYPES.length)]);
             drawNextBlock();
@@ -392,15 +394,15 @@
             return { collided: false, y: 0 };
         }
         
-        // ==================== 计算落点（从当前位置向下扫描）====================
+        // ==================== 计算落点（从顶部向下扫描找落点）====================
         function calculateLandingY(x, block) {
             const baseTop = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
-            let landingY = block.y;
             
-            // 逐步向下扫描找落点
+            // 从顶部开始扫描
+            let landingY = 0;
+            
             while (landingY < baseTop) {
-                // 检查是否碰到其他积木（优先检测）
-                let hitBlock = false;
+                // 检查是否碰到其他积木
                 for (let existing of game.blocks) {
                     const blockLeft = x - block.width / 2;
                     const blockRight = x + block.width / 2;
@@ -418,12 +420,12 @@
                     }
                 }
                 
-                // 检查是否碰到地基（最后检测）
+                // 检查是否碰到地基
                 if (landingY + block.height >= baseTop) {
                     return baseTop - block.height;
                 }
                 
-                landingY += 5; // 步进
+                landingY += 5;
             }
             
             return baseTop - block.height;
@@ -471,9 +473,13 @@
             game.height++;
             
             // 更新相机 - 保持塔在屏幕下方
-            const towerTop = getTowerTop();
-            const targetY = Math.max(0, towerTop - CONFIG.VIEW_TOP);
-            game.targetCameraY = targetY;
+            if (game.blocks.length === 1) {
+                // 第一块积木，直接设为0
+                game.targetCameraY = 0;
+            } else {
+                const towerTop = getTowerTop();
+                game.targetCameraY = Math.max(0, towerTop - CONFIG.VIEW_TOP);
+            }
             
             updateUI();
             
