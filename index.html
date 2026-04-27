@@ -392,15 +392,51 @@
             return { collided: false, y: 0 };
         }
         
+        // ==================== 计算落点（从当前位置向下扫描）====================
+        function calculateLandingY(x, block) {
+            const baseTop = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
+            let landingY = block.y;
+            
+            // 逐步向下扫描找落点
+            while (landingY < baseTop) {
+                // 检查当前Y位置是否碰撞
+                if (landingY + block.height >= baseTop) {
+                    return baseTop - block.height;
+                }
+                
+                // 检查是否碰到其他积木
+                for (let existing of game.blocks) {
+                    const blockLeft = x - block.width / 2;
+                    const blockRight = x + block.width / 2;
+                    const blockBottom = landingY + block.height;
+                    const blockTop = landingY;
+                    
+                    const existLeft = existing.x - existing.width / 2;
+                    const existRight = existing.x + existing.width / 2;
+                    const existTop = existing.y;
+                    const existBottom = existing.y + existing.height;
+                    
+                    if (blockRight > existLeft && blockLeft < existRight &&
+                        blockBottom > existTop && blockTop < existBottom) {
+                        return existTop - block.height;
+                    }
+                }
+                
+                landingY += 5; // 步进
+            }
+            
+            return baseTop - block.height;
+        }
+        
         // ==================== 放置积木（手动投放）====================
         function dropBlock() {
             if (!game.readyToDrop || !game.currentBlock || game.currentBlock.placed) return;
             
-            game.readyToDrop = false;  // 禁止重复投放
+            game.readyToDrop = false;
             
             const block = game.currentBlock;
-            const result = checkCollision(block.x, block);
-            block.y = result.y;
+            // 计算落点
+            block.y = calculateLandingY(block.x, block);
             block.placed = true;
             
             const offset = Math.abs(block.x - CONFIG.CANVAS_WIDTH / 2);
