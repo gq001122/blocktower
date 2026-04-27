@@ -480,13 +480,13 @@
             game.blocks.push(block);
             game.height++;
             
-            // 更新相机 - 只有当塔超出屏幕时才移动
+            // 更新相机 - 塔高到屏幕一半时就开始移动
             const towerTop = getTowerTop();
-            const screenHeight = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT - CONFIG.VIEW_TOP;
-            if (towerTop < screenHeight) {
-                game.targetCameraY = 0;  // 塔还在屏幕内，不移动相机
+            const halfScreen = (CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT) / 2;
+            if (towerTop < halfScreen) {
+                game.targetCameraY = 0;
             } else {
-                game.targetCameraY = towerTop - screenHeight;  // 塔太高了，向上移动相机
+                game.targetCameraY = towerTop - halfScreen;
             }
             
             updateUI();
