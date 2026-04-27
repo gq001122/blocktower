@@ -425,7 +425,8 @@
         <!-- 移动端控制 -->
         <div id="mobileControls">
             <div class="mobileBtn" id="leftBtn">◀</div>
-            <div class="mobileBtn" id="dropBtn">投放</div>
+            <div class="mobileBtn" id="rotateBtn">🔄</div>
+            <div class="mobileBtn" id="dropBtn">⬇️</div>
             <div class="mobileBtn" id="rightBtn">▶</div>
         </div>
     </div>
@@ -783,20 +784,34 @@
         function spawnNextBlock() {
             game.currentBlock = game.nextBlock;
             game.currentBlock.x = game.baseX;
-            // 新积木固定在屏幕顶部，等待玩家投放
+            // 积木从顶部开始
             game.currentBlock.y = CONFIG.SPAWN_Y;
-            game.currentBlock.dropping = false;  // 不自动下落，等待玩家
+            game.currentBlock.dropping = true;  // 自动下落
             game.currentBlock.placed = false;
-            game.currentBlock.targetY = calculateLandingY();  // 计算目标位置
+            
+            // 随机旋转角度
+            game.currentBlock.rotation = [0, 90, 180, 270][Math.floor(Math.random() * 4)];
+            
+            // 计算目标落点
+            game.currentBlock.targetY = calculateLandingY();
             
             game.nextBlock = createBlock(getRandomBlockType(game.height));
             drawNextBlock();
         }
         
         function dropBlock() {
-            if (!game.currentBlock || game.currentBlock.dropping || game.currentBlock.placed) return;
-            // 玩家投放，积木开始下落
+            if (!game.currentBlock || game.currentBlock.placed) return;
+            // 玩家加速下落，直接落到目标位置
             game.currentBlock.dropping = true;
+            game.currentBlock.y = game.currentBlock.targetY;
+        }
+        
+        function rotateBlock() {
+            if (!game.currentBlock || game.currentBlock.placed) return;
+            // 顺时针旋转90度
+            game.currentBlock.rotation = (game.currentBlock.rotation + 90) % 360;
+            // 重新计算落点
+            game.currentBlock.targetY = calculateLandingY();
         }
         
         // 落地闪光效果
@@ -864,106 +879,115 @@
             }, 300);
         }
         
+        // 俄罗斯方块式形状旋转
+        function getRotatedShape(shape, rotation) {
+            if (rotation === 0) return shape;
+            
+            const rows = shape.length;
+            const cols = shape[0].length;
+            let result;
+            
+            if (rotation === 90) {
+                // 顺时针旋转90度
+                result = [];
+                for (let c = 0; c < cols; c++) {
+                    result[c] = [];
+                    for (let r = rows - 1; r >= 0; r--) {
+                        result[c][rows - 1 - r] = shape[r][c];
+                    }
+                }
+            } else if (rotation === 180) {
+                // 旋转180度
+                result = [];
+                for (let r = rows - 1; r >= 0; r--) {
+                    result[rows - 1 - r] = [];
+                    for (let c = cols - 1; c >= 0; c--) {
+                        result[rows - 1 - r][cols - 1 - c] = shape[r][c];
+                    }
+                }
+            } else if (rotation === 270) {
+                // 逆时针旋转90度
+                result = [];
+                for (let c = cols - 1; c >= 0; c--) {
+                    result[cols - 1 - c] = [];
+                    for (let r = 0; r < rows; r++) {
+                        result[cols - 1 - c][r] = shape[r][c];
+                    }
+                }
+            }
+            
+            return result;
+        }
+        
+        // 俄罗斯方块式碰撞检测
+        function checkTetrisCollision(x, y, shape) {
+            const cellSize = CONFIG.BLOCK_SIZE;
+            const baseTopY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
+            
+            // 遍历每个单元格
+            for (let rowIdx = 0; rowIdx < shape.length; rowIdx++) {
+                for (let colIdx = 0; colIdx < shape[rowIdx].length; colIdx++) {
+                    if (!shape[rowIdx][colIdx]) continue;
+                    
+                    // 计算单元格位置
+                    const cellLeft = x - shape[0].length * cellSize / 2 + colIdx * cellSize;
+                    const cellRight = cellLeft + cellSize;
+                    const cellTop = y + rowIdx * cellSize;
+                    const cellBottom = cellTop + cellSize;
+                    
+                    // 检查是否碰到基座
+                    if (cellBottom >= baseTopY) {
+                        return true;
+                    }
+                    
+                    // 检查是否碰到其他积木
+                    for (let existing of game.blocks) {
+                        const existLeft = existing.x - existing.width / 2;
+                        const existRight = existLeft + existing.width;
+                        const existTop = existing.y;
+                        const existBottom = existTop + existing.height;
+                        
+                        // 水平重叠检测
+                        if (cellRight > existLeft && cellLeft < existRight) {
+                            // 垂直重叠检测
+                            if (cellBottom > existTop && cellTop < existBottom) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
         function calculateLandingY() {
             const block = game.currentBlock;
             const cellSize = CONFIG.BLOCK_SIZE;
             const baseTopY = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
             
-            // ========== 俄罗斯方块式堆叠算法 ==========
-            // 核心：每个单元格独立下落，积木落在所有单元格落点的最高处
+            // 获取旋转后的形状
+            const rotatedShape = getRotatedShape(block.shape, block.rotation);
             
-            // 收集当前积木的单元格信息
-            const cells = [];
-            for (let rowIdx = 0; rowIdx < block.shape.length; rowIdx++) {
-                for (let colIdx = 0; colIdx < block.shape[rowIdx].length; colIdx++) {
-                    if (block.shape[rowIdx][colIdx]) {
-                        cells.push({ rowIdx, colIdx });
-                    }
+            // 从顶部开始，逐步向下扫描找落点
+            let landingY = block.y;
+            
+            while (landingY < baseTopY) {
+                // 检查当前位置是否会碰撞
+                if (checkTetrisCollision(block.x, landingY + CONFIG.DROP_SPEED, rotatedShape)) {
+                    // 碰撞了，当前位置就是落点
+                    break;
                 }
+                landingY += CONFIG.DROP_SPEED;
             }
             
-            // 第一步：搜索最佳X位置
-            // 优先选择让所有单元格都能落在已有积木上方的位置
-            let bestX = block.x;
-            let bestSupportCount = 0;
-            let hasFullSupport = false;
-            
-            const step = cellSize / 4;
-            
-            // 遍历所有可能的X偏移
-            for (let offset = -block.width; offset <= block.width; offset += step) {
-                const testX = block.x + offset;
-                let cellSupportCount = 0;
-                
-                // 检查每个单元格在testX位置是否有支撑
-                for (let cell of cells) {
-                    const cellLeft = testX - block.width / 2 + cell.colIdx * cellSize;
-                    const cellRight = cellLeft + cellSize;
-                    
-                    for (let existing of game.blocks) {
-                        const existLeft = existing.x - existing.width / 2;
-                        const existRight = existLeft + existing.width;
-                        
-                        // 检查单元格和积木是否有水平重叠
-                        if (cellRight > existLeft && cellLeft < existRight) {
-                            // 有重叠，这个单元格有支撑
-                            cellSupportCount++;
-                            break;
-                        }
-                    }
-                }
-                
-                // 优先选择支撑最多的位置
-                if (cellSupportCount > bestSupportCount) {
-                    bestSupportCount = cellSupportCount;
-                    bestX = testX;
-                }
-                
-                // 如果所有单元格都有支撑，记录这个位置
-                if (cellSupportCount === cells.length) {
-                    hasFullSupport = true;
-                    bestX = testX;
-                    break;  // 找到完美位置，停止搜索
-                }
+            // 确保不超过基座
+            const rotatedHeight = rotatedShape.length * cellSize;
+            if (landingY > baseTopY - rotatedHeight) {
+                landingY = baseTopY - rotatedHeight;
             }
             
-            // 应用最佳X位置
-            block.x = bestX;
-            
-            // 第二步：计算积木的落点Y
-            // 每个单元格独立计算落点，取最高值
-            let highestLandingY = baseTopY;  // 默认落在基座
-            
-            for (let cell of cells) {
-                const cellLeft = bestX - block.width / 2 + cell.colIdx * cellSize;
-                const cellRight = cellLeft + cellSize;
-                
-                // 找到这个单元格下方的最高支撑
-                let cellLandingY = baseTopY;  // 默认落在基座
-                
-                for (let existing of game.blocks) {
-                    const existLeft = existing.x - existing.width / 2;
-                    const existRight = existLeft + existing.width;
-                    
-                    // 检查水平重叠
-                    if (cellRight > existLeft && cellLeft < existRight) {
-                        // 单元格在这个积木上方
-                        // 单元格底部应该等于积木顶部
-                        const supportY = existing.y;
-                        if (supportY < cellLandingY) {
-                            cellLandingY = supportY;
-                        }
-                    }
-                }
-                
-                // 更新最高落点
-                if (cellLandingY > highestLandingY) {
-                    highestLandingY = cellLandingY;
-                }
-            }
-            
-            // 积木的顶部位置 = 最高单元格落点 - 积木高度
-            return highestLandingY - block.height;
+            return Math.max(block.y, landingY);
         }
         
         // 检查积木是否与现有积木发生真正的重叠碰撞（基于单元格）
@@ -1321,13 +1345,20 @@
         }
         
         function drawBlock(block, isCurrentBlock) {
-            const x = block.x - block.width / 2;
-            // 当前积木固定在屏幕顶部，已放置积木跟随相机
-            const y = isCurrentBlock ? CONFIG.SPAWN_Y : block.y;
             const cellSize = CONFIG.BLOCK_SIZE;
             
+            // 获取要绘制的形状（考虑旋转）
+            const shape = isCurrentBlock ? getRotatedShape(block.shape, block.rotation) : block.shape;
+            const shapeWidth = shape[0].length * cellSize;
+            const shapeHeight = shape.length * cellSize;
+            
+            // 计算位置（居中）
+            const x = block.x - shapeWidth / 2;
+            // 当前积木固定在屏幕顶部，已放置积木跟随相机
+            const y = isCurrentBlock ? CONFIG.SPAWN_Y : block.y;
+            
             // 绘制每个单元格
-            block.shape.forEach((row, rowIndex) => {
+            shape.forEach((row, rowIndex) => {
                 row.forEach((cell, colIndex) => {
                     if (cell) {
                         const cx = x + colIndex * cellSize;
@@ -1429,8 +1460,15 @@
                     game.currentBlock.x = Math.min(CONFIG.CANVAS_WIDTH - 50, game.currentBlock.x);
                     break;
                 case 'ArrowDown':
+                case ' ':
                     e.preventDefault();
                     dropBlock();
+                    break;
+                case 'ArrowUp':
+                case 'x':
+                case 'X':
+                    e.preventDefault();
+                    rotateBlock();
                     break;
             }
         });
@@ -1457,6 +1495,11 @@
         document.getElementById('dropBtn').addEventListener('touchstart', (e) => {
             e.preventDefault();
             dropBlock();
+        });
+        
+        document.getElementById('rotateBtn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            rotateBlock();
         });
         
         // 按钮事件
