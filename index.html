@@ -339,11 +339,12 @@
         function spawnNextBlock() {
             game.currentBlock = game.nextBlock;
             game.currentBlock.x = CONFIG.CANVAS_WIDTH / 2;
-            // 积木初始显示在地基上方
-            const baseTop = CONFIG.CANVAS_HEIGHT - CONFIG.BASE_HEIGHT;
-            game.currentBlock.y = baseTop - game.currentBlock.height - 5;
+            game.currentBlock.y = CONFIG.SPAWN_Y;  // 屏幕顶部
             game.currentBlock.placed = false;
             game.readyToDrop = true;
+            
+            // 预计算落点
+            game.currentBlock.targetY = calculateLandingY(game.currentBlock.x, game.currentBlock);
             
             game.nextBlock = createBlock(BLOCK_TYPES[Math.floor(Math.random() * BLOCK_TYPES.length)]);
             drawNextBlock();
@@ -431,16 +432,22 @@
             return baseTop - block.height;
         }
         
-        // ==================== 放置积木（手动投放）====================
+        // ==================== 放置积木（手动投放，触发动画下落）====================
         function dropBlock() {
             if (!game.readyToDrop || !game.currentBlock || game.currentBlock.placed) return;
             
             game.readyToDrop = false;
-            
+            game.currentBlock.dropping = true;  // 开始下落动画
+        }
+        
+        // ==================== 积木放置完成（动画结束后调用）====================
+        function onBlockLanded() {
             const block = game.currentBlock;
-            // 计算落点
-            block.y = calculateLandingY(block.x, block);
+            if (!block) return;
+            
             block.placed = true;
+            block.dropping = false;
+            block.y = block.targetY;  // 确保在落点位置
             
             const offset = Math.abs(block.x - CONFIG.CANVAS_WIDTH / 2);
             
@@ -673,18 +680,31 @@
             if (game.currentBlock && game.state === 'playing') {
                 const block = game.currentBlock;
                 
+                // 处理输入
                 if (game.readyToDrop) {
                     handleInput();
                 }
                 
-                // 下落轨迹
+                // 下落动画
+                if (block.dropping && block.targetY !== undefined) {
+                    const dropSpeed = 8;
+                    if (block.y < block.targetY) {
+                        block.y = Math.min(block.y + dropSpeed, block.targetY);
+                    }
+                    if (block.y >= block.targetY) {
+                        block.y = block.targetY;
+                        onBlockLanded();  // 落到底了
+                    }
+                }
+                
+                // 下落轨迹（投放前显示）
                 if (game.readyToDrop) {
                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
                     ctx.lineWidth = 2;
                     ctx.setLineDash([5, 5]);
                     ctx.beginPath();
-                    ctx.moveTo(block.x, CONFIG.SPAWN_Y);
-                    ctx.lineTo(block.x, block.y + block.height + 200);
+                    ctx.moveTo(block.x, block.y);
+                    ctx.lineTo(block.x, block.targetY + block.height);
                     ctx.stroke();
                     ctx.setLineDash([]);
                     
